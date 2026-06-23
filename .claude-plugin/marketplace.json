@@ -1,0 +1,30 @@
+{
+  "name": "position-manager-skill",
+  "owner": {
+    "name": "LightCreator1007"
+  },
+  "metadata": {
+    "upstream": "solanabr/position-manager-skill (seed; LICENSE retained)"
+  },
+  "plugins": [
+    {
+      "name": "position-manager-skill",
+      "source": "./",
+      "description": "Solana position manager: impermanent loss, out-of-range alerts, a tax-aware rebalance expected-value decision, FIFO/HIFO/SpecID tax lots, time-weighted P&L from a local snapshot ledger, and a portfolio health report across Orca, Raydium, Meteora DLMM, and Kamino. Analysis and planning only.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": [
+        "solana",
+        "defi",
+        "clmm",
+        "impermanent-loss",
+        "rebalance",
+        "tax-lots",
+        "orca",
+        "raydium",
+        "meteora",
+        "kamino"
+      ]
+    }
+  ]
+}
