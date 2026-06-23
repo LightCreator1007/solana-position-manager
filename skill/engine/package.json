@@ -1,0 +1,27 @@
+{
+  "name": "position-manager-engine",
+  "version": "0.1.0",
+  "description": "Deterministic core for the Solana position-manager skill: IL, P&L, rebalance EV, tax lots, portfolio health.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc -p .",
+    "demo": "node demo.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "optionalDependencies": {
+    "@solana/kit": "^2.0.0",
+    "@orca-so/whirlpools": "^1.0.0",
+    "@raydium-io/raydium-sdk-v2": "^0.2.0",
+    "@meteora-ag/dlmm": "^1.0.0",
+    "@kamino-finance/kliquidity-sdk": "^13.0.0"
+  },
+  "license": "MIT"
+}
