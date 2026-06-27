@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Position, Snapshot, TokenLeg } from "./model.ts";
+import { EngineError, classifyError } from "./errors.ts";
 
 // JSON-safe shapes. bigint base units are stored as decimal strings.
 interface TokenLegDto {
@@ -112,15 +113,28 @@ export function ledgerPath(wallet: string, opts: LedgerOpts = {}): string {
 
 export function appendSnapshot(snap: Snapshot, opts: LedgerOpts = {}): string {
   const path = ledgerPath(snap.wallet, opts);
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, serializeSnapshot(snap) + "\n", "utf8");
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, serializeSnapshot(snap) + "\n", "utf8");
+  } catch (err) {
+    throw new EngineError("LEDGER_IO", `ledger: cannot write snapshot for ${snap.wallet}`, {
+      cause: classifyError(err).message,
+    });
+  }
   return path;
 }
 
 export function readSnapshots(wallet: string, opts: LedgerOpts = {}): Snapshot[] {
   const path = ledgerPath(wallet, opts);
   if (!existsSync(path)) return [];
-  const lines = readFileSync(path, "utf8").split("\n");
+  let lines: string[];
+  try {
+    lines = readFileSync(path, "utf8").split("\n");
+  } catch (err) {
+    throw new EngineError("LEDGER_IO", `ledger: cannot read snapshots for ${wallet}`, {
+      cause: classifyError(err).message,
+    });
+  }
   const out: Snapshot[] = [];
   for (const line of lines) {
     const trimmed = line.trim();

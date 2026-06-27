@@ -1,4 +1,5 @@
 import type { PriceSource } from "./model.ts";
+import { EngineError, safeEndpoint } from "./errors.ts";
 
 export interface PriceMap {
   usd: Record<string, number>;
@@ -19,7 +20,9 @@ export async function fetchJupiterPrices(
 ): Promise<Record<string, number>> {
   if (mints.length === 0) return {};
   const res = await fetchImpl(`${JUPITER_URL}?ids=${mints.join(",")}`);
-  if (!res.ok) throw new Error(`jupiter price http ${res.status}`);
+  if (!res.ok) {
+    throw new EngineError("RPC_FAILED", `jupiter price http ${res.status}`, { endpoint: safeEndpoint(JUPITER_URL) });
+  }
   const body = (await res.json()) as { data?: Record<string, { price?: string | number } | null> };
   const out: Record<string, number> = {};
   for (const mint of mints) {

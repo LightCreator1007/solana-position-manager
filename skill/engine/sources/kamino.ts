@@ -1,4 +1,5 @@
 import type { Position } from "../model.ts";
+import { EngineError } from "../errors.ts";
 import { strOf, numOf, bigOf } from "./extract.ts";
 
 const PKG = "@kamino-finance/kliquidity-sdk";
@@ -67,9 +68,15 @@ async function liveFetch(): Promise<Record<string, unknown>[]> {
   try {
     await import(pkg);
   } catch {
-    throw new Error(`source/kamino: optional dependency ${PKG} is not installed`);
+    throw new EngineError("DEPENDENCY_MISSING", `source/kamino: optional dependency ${PKG} is not installed`, {
+      dependency: PKG,
+    });
   }
-  throw new Error("source/kamino: live fetch wiring lives in leaves/data-sources.md; pass a fetcher to read()");
+  throw new EngineError(
+    "NOT_IMPLEMENTED",
+    "source/kamino: pass a fetcher to read(); the live path is in leaves/data-sources.md",
+    { venue: "kamino" },
+  );
 }
 
 export async function read(owner: string, opts: ReadOpts = {}, fetcher?: RawFetcher): Promise<Position[]> {
