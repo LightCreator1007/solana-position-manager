@@ -1,0 +1,29 @@
+{
+  "takenAtUnix": 1718200000,
+  "wallet": "Example1111111111111111111111111111111111111",
+  "priceUsd": {
+    "So11111111111111111111111111111111111111112": 150,
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1
+  },
+  "priceSource": {
+    "So11111111111111111111111111111111111111112": "jupiter",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "jupiter"
+  },
+  "positions": [
+    {
+      "venue": "meteora-dlmm",
+      "kind": "clmm",
+      "ref": "MeteoraExampleSOLUSDC1111111111111111111111",
+      "band": { "unit": "bin", "lower": -120, "upper": -60, "inclusiveUpper": true },
+      "inRange": false,
+      "legs": {
+        "a": { "mint": "So11111111111111111111111111111111111111112", "decimals": 9, "raw": "8000000000" },
+        "b": { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6, "raw": "100000000" }
+      },
+      "unclaimed": { "a": "0", "b": "3000000" },
+      "poolLiquidityUsd": 900000,
+      "poolVolume24hUsd": 450000,
+      "openedAtUnix": 1718000000
+    }
+  ]
+}

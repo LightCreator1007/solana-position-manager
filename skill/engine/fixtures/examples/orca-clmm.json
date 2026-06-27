@@ -1,0 +1,29 @@
+{
+  "takenAtUnix": 1718200000,
+  "wallet": "Example1111111111111111111111111111111111111",
+  "priceUsd": {
+    "So11111111111111111111111111111111111111112": 150,
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1
+  },
+  "priceSource": {
+    "So11111111111111111111111111111111111111112": "jupiter",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "jupiter"
+  },
+  "positions": [
+    {
+      "venue": "orca",
+      "kind": "clmm",
+      "ref": "WhirlExampleSOLUSDC11111111111111111111111111",
+      "band": { "unit": "tick", "lower": -19200, "upper": -18000, "inclusiveUpper": false },
+      "inRange": true,
+      "legs": {
+        "a": { "mint": "So11111111111111111111111111111111111111112", "decimals": 9, "raw": "10000000000" },
+        "b": { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6, "raw": "1500000000" }
+      },
+      "unclaimed": { "a": "10000000", "b": "2000000" },
+      "poolLiquidityUsd": 5000000,
+      "poolVolume24hUsd": 1200000,
+      "openedAtUnix": 1718000000
+    }
+  ]
+}
