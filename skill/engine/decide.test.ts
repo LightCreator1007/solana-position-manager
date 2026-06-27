@@ -69,6 +69,14 @@ test("confidence reflects data sufficiency", () => {
   assert.equal(low.confidence, "low");
 });
 
+test("reports worst-case edge IL and a break-even fee APR for the recommended band", () => {
+  const d = decideRebalance({ ...outOfRange, taxRateBps: 0 });
+  assert.ok(d.recommendedIlAtEdgesUsd.low <= 0);
+  assert.ok(d.recommendedIlAtEdgesUsd.high <= 0);
+  assert.ok(d.breakEvenFeeAprPct >= 0);
+  assert.ok(Number.isFinite(d.breakEvenFeeAprPct));
+});
+
 test("a custom safety margin suppresses marginal rebalances", () => {
   const eager = decideRebalance({ ...outOfRange, taxRateBps: 0 });
   const strict = decideRebalance({ ...outOfRange, taxRateBps: 0, safetyMarginUsd: eager.evDeltaUsd + 1 });

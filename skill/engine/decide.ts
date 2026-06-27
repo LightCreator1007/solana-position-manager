@@ -1,4 +1,4 @@
-import { bandFromWidth, ilClmm, outOfRangeProbability, type PriceBand } from "./il.ts";
+import { bandFromWidth, ilClmm, breakEvenFeeApr, outOfRangeProbability, type PriceBand } from "./il.ts";
 
 export interface DecideInput {
   currentPrice: number;
@@ -45,6 +45,10 @@ export interface Decision {
   expectedExtraIlUsd: number;
   frictionUsd: number;
   taxDragUsd: number;
+  // Worst in-range IL in USD if price walks to either edge of the recommended band.
+  recommendedIlAtEdgesUsd: { low: number; high: number };
+  // Fee APR the recommended band must earn to offset its expected IL over the horizon.
+  breakEvenFeeAprPct: number;
   confidence: "low" | "medium" | "high";
   notes: string[];
   inputs: DecideInputsResolved;
@@ -141,6 +145,22 @@ export function decideRebalance(input: DecideInput): Decision {
   const evDeltaUsd =
     projectedFeesRebalanceUsd - projectedFeesStayUsd - expectedExtraIlUsd - frictionUsd - taxDragUsd;
 
+  const edges = ilClmm({
+    entryPrice: r.currentPrice,
+    exitPrice: r.currentPrice,
+    band: recommendedBand,
+    depositValueInB: r.depositValueUsd,
+  });
+  const recommendedIlAtEdgesUsd = {
+    low: edges.ilAtLow * r.depositValueUsd,
+    high: edges.ilAtHigh * r.depositValueUsd,
+  };
+  const horizonYears = r.horizonDays / 365;
+  const breakEvenFeeAprPct =
+    r.depositValueUsd > 0
+      ? breakEvenFeeApr(-(ilNew / r.depositValueUsd), horizonYears) * 100
+      : 0;
+
   const outOfRangeProbCurrent = 1 - fracCurrent;
   const action = evDeltaUsd > r.safetyMarginUsd ? "REBALANCE" : "HOLD";
 
@@ -174,6 +194,8 @@ export function decideRebalance(input: DecideInput): Decision {
     expectedExtraIlUsd,
     frictionUsd,
     taxDragUsd,
+    recommendedIlAtEdgesUsd,
+    breakEvenFeeAprPct,
     confidence,
     notes,
     inputs: r,

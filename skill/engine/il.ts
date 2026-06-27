@@ -53,6 +53,10 @@ export interface IlResult {
   ilFraction: number;
   lpValueInB: number;
   hodlValueInB: number;
+  // IL the position would carry if price walked to each band edge from entry.
+  // The edges are the worst in-range case, since the position fully converts there.
+  ilAtLow: number;
+  ilAtHigh: number;
 }
 
 export function ilClmm(params: {
@@ -69,10 +73,26 @@ export function ilClmm(params: {
 
   const liquidity = liquidityForValue(depositValueInB, entryPrice, band);
   const entrySplit = clmmTokenSplit(liquidity, entryPrice, band);
-  const hodlValueInB = entrySplit.amountA * exitPrice + entrySplit.amountB;
-  const lpValueInB = clmmValueInB(liquidity, exitPrice, band);
-  const ilFraction = hodlValueInB > 0 ? lpValueInB / hodlValueInB - 1 : 0;
-  return { ilFraction, lpValueInB, hodlValueInB };
+  const ilAt = (price: number): { il: number; lp: number; hodl: number } => {
+    const hodl = entrySplit.amountA * price + entrySplit.amountB;
+    const lp = clmmValueInB(liquidity, price, band);
+    return { il: hodl > 0 ? lp / hodl - 1 : 0, lp, hodl };
+  };
+  const exit = ilAt(exitPrice);
+  return {
+    ilFraction: exit.il,
+    lpValueInB: exit.lp,
+    hodlValueInB: exit.hodl,
+    ilAtLow: ilAt(band.low).il,
+    ilAtHigh: ilAt(band.high).il,
+  };
+}
+
+// Fee APR a position must earn to offset its impermanent loss over the holding
+// period. Below this APR the position loses to holding on a risk-adjusted basis.
+export function breakEvenFeeApr(ilFraction: number, horizonYears: number): number {
+  if (!(horizonYears > 0)) throw new Error("breakEvenFeeApr: horizonYears must be > 0");
+  return Math.max(0, -ilFraction) / horizonYears;
 }
 
 export function realizedVolAnnualized(series: PricePoint[]): number {
@@ -86,6 +106,30 @@ export function realizedVolAnnualized(series: PricePoint[]): number {
   if (returns.length < 2) return 0;
   const mean = returns.reduce((acc, r) => acc + r, 0) / returns.length;
   const variance = returns.reduce((acc, r) => acc + (r - mean) ** 2, 0) / (returns.length - 1);
+  const stepStd = sqrt(variance);
+  const spanSec = series[series.length - 1].t - series[0].t;
+  const stepSec = spanSec / (series.length - 1);
+  if (!(stepSec > 0)) return 0;
+  const stepsPerYear = (365 * 24 * 3600) / stepSec;
+  return stepStd * sqrt(stepsPerYear);
+}
+
+// EWMA volatility (RiskMetrics) annualized. Weights recent returns more than a
+// flat realized vol, so a volatility-sized band reacts faster to a regime change.
+export function ewmaVolAnnualized(series: PricePoint[], lambda = 0.94): number {
+  if (series.length < 3) return 0;
+  if (!(lambda > 0 && lambda < 1)) throw new Error("ewmaVolAnnualized: lambda must be in (0, 1)");
+  let variance = 0;
+  let seen = 0;
+  for (let i = 1; i < series.length; i++) {
+    const prev = series[i - 1].price;
+    const curr = series[i].price;
+    if (!(prev > 0 && curr > 0)) continue;
+    const r = Math.log(curr / prev);
+    variance = seen === 0 ? r * r : lambda * variance + (1 - lambda) * r * r;
+    seen++;
+  }
+  if (seen < 2) return 0;
   const stepStd = sqrt(variance);
   const spanSec = series[series.length - 1].t - series[0].t;
   const stepSec = spanSec / (series.length - 1);

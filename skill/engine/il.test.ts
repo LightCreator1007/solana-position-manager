@@ -8,6 +8,8 @@ import {
   clmmTokenSplit,
   ilClmm,
   realizedVolAnnualized,
+  ewmaVolAnnualized,
+  breakEvenFeeApr,
   outOfRangeProbability,
   stdNormCdf,
   type PricePoint,
@@ -55,6 +57,38 @@ test("ilClmm is negative and bounded for an in-range move", () => {
   const r = ilClmm({ entryPrice: 2, exitPrice: 3, band: { low: 1, high: 4 }, depositValueInB: 1000 });
   assert.ok(r.ilFraction < 0);
   assert.ok(r.ilFraction > -1);
+});
+
+test("ilClmm edge ILs are non-positive and at least as severe as an interior exit", () => {
+  const r = ilClmm({ entryPrice: 2, exitPrice: 2.2, band: { low: 1, high: 4 }, depositValueInB: 1000 });
+  assert.ok(r.ilAtLow <= 1e-9);
+  assert.ok(r.ilAtHigh <= 1e-9);
+  assert.ok(Math.min(r.ilAtLow, r.ilAtHigh) <= r.ilFraction + 1e-9);
+});
+
+test("breakEvenFeeApr turns an IL loss into the APR needed to offset it", () => {
+  assert.ok(close(breakEvenFeeApr(-0.05, 0.5), 0.1));
+  assert.equal(breakEvenFeeApr(0, 1), 0);
+  assert.equal(breakEvenFeeApr(0.03, 1), 0);
+  assert.throws(() => breakEvenFeeApr(-0.05, 0));
+});
+
+test("ewmaVolAnnualized is zero for a flat series, positive for a moving one, and guards lambda", () => {
+  const flat: PricePoint[] = [
+    { t: 0, price: 100 },
+    { t: 86400, price: 100 },
+    { t: 172800, price: 100 },
+  ];
+  assert.equal(ewmaVolAnnualized(flat), 0);
+
+  const moving: PricePoint[] = [
+    { t: 0, price: 100 },
+    { t: 86400, price: 110 },
+    { t: 172800, price: 105 },
+    { t: 259200, price: 115 },
+  ];
+  assert.ok(ewmaVolAnnualized(moving) > 0);
+  assert.throws(() => ewmaVolAnnualized(moving, 1));
 });
 
 test("bandFromWidth builds a symmetric band and rejects bad input", () => {
