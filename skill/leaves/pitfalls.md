@@ -12,4 +12,8 @@ Read this before recommending any action.
 - Decimals come from the mint account. Hardcoding them produces silently wrong values.
 - Prices go stale. Use a fresh price for liquidation and for sizing, never a cached one.
 - Leave a small SOL buffer for fees. A rebalance that cannot pay its own transaction fee fails halfway.
+- A Token-2022 mint can carry a transfer hook or a transfer fee. Verify both before sizing or exit; the amount that settles may be less than the amount you send.
+- A locked or vesting position cannot be withdrawn or rebalanced until it unlocks. Check lock state before planning a move.
+- Confirm price orientation. If the band-implied price disagrees with the oracle ratio by a large factor, the token order or the decimals are wrong. The engine flags this as `price-orientation`.
+- Thin pool liquidity means an exit can move the price against you. Size the exit against pool depth, not just position value.
 - Never sign without a typed confirmation. There is no force flag in this skill.

@@ -74,23 +74,26 @@ plans. It does not sign or submit transactions.
 position-manager-skill/
   CLAUDE.md
   README.md
-  install.sh
+  ROADMAP.md
+  install.sh         Claude (.claude) or Codex (--agents, .agents)
   install-custom.sh
   .claude-plugin/marketplace.json
   skill/
     SKILL.md
     leaves/        focused topic docs
     resources.md
-    engine/        tested TypeScript core
-  agents/
+    engine/        tested TypeScript core, with errors.ts and sources/ (readers, rpc, registry)
+  agents/          includes openai.yaml for Codex
   commands/
   rules/
+  scripts/         validate.mjs, the skill linter
+  evals/           trigger queries and output evals
 ```
 
 ## Branch workflow
 
 ```
-git checkout -b feat/<scope>-<DD-MM-YYYY>
+git checkout -b feat/<scope>
 ```
 
 Main skill entry: `skill/SKILL.md`.

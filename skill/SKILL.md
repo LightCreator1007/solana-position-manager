@@ -18,7 +18,7 @@ Jupiter skill. This skill plans, it does not execute.
 - Decides whether to rebalance by expected value: projected fees against impermanent loss, gas, slippage, and tax drag.
 - Keeps a local append-only snapshot ledger so P&L and fee velocity are measured, not assumed.
 - Tracks cost basis with FIFO, HIFO, or specific identification.
-- Flags out-of-range positions, low lending health, and concentration.
+- Flags out-of-range positions, low lending health, concentration, Token-2022 mints, locked positions, thin liquidity, and inverted price orientation.
 - Renders a position health report as Markdown and JSON.
 
 ## What this skill does not do
@@ -71,17 +71,20 @@ The leaves call importable functions in `engine/`. Each pure module has unit tes
 | Module | Purpose |
 | --- | --- |
 | `engine/model.ts` | normalised `Position` and `Snapshot` types |
-| `engine/il.ts` | CLMM value, impermanent loss, realised volatility, out-of-range probability |
+| `engine/il.ts` | CLMM value, impermanent loss with edge cases, break-even fee APR, realised and EWMA volatility, out-of-range probability |
 | `engine/ledger.ts` | append and read the local snapshot ledger |
 | `engine/pnl.ts` | portfolio value, fee velocity, time-weighted return, pair price series |
 | `engine/decide.ts` | tax-aware rebalance expected value |
 | `engine/taxlots.ts` | FIFO, HIFO, and SpecID cost basis |
-| `engine/health.ts` | escalations and portfolio score |
+| `engine/health.ts` | escalations (range, lending, concentration, Token-2022, locked, thin liquidity, orientation) and portfolio score |
 | `engine/plan.ts` | build a rebalance plan, no transaction is built |
 | `engine/safety.ts` | the execution guard |
 | `engine/report.ts` | render the health report |
 | `engine/prices.ts` | USD prices with source and staleness labels |
-| `engine/sources/*.ts` | per-venue position readers with lazy SDK imports |
+| `engine/errors.ts` | typed `EngineError` with remediation and secret redaction |
+| `engine/sources/*.ts` | per-venue readers, an injectable fetcher, and pure transforms |
+| `engine/sources/rpc.ts` | read-only JSON-RPC client and position-NFT discovery |
+| `engine/sources/registry.ts` | venue registry: program ids, SDKs, limitations, roadmap |
 
 ## Default stack (June 2026)
 

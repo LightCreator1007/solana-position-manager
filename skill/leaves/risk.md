@@ -8,7 +8,8 @@ Goal: quantify impermanent loss, out-of-range exposure, and volatility for a pos
 
 - `ilConstantProduct(ratio)`: the full-range result, `2*sqrt(r)/(1+r) - 1`. Use it as a sanity baseline.
 - `clmmValueInB(liquidity, price, band)`: position value under the concentrated-liquidity formula, clamped to the band.
-- `ilClmm({ entryPrice, exitPrice, band, depositValueInB })`: impermanent loss against holding, for a real range.
+- `ilClmm({ entryPrice, exitPrice, band, depositValueInB })`: impermanent loss against holding, for a real range. It also returns `ilAtLow` and `ilAtHigh`, the loss if price walks to either band edge, which is the worst in-range case.
+- `breakEvenFeeApr(ilFraction, horizonYears)`: the fee APR a position must earn to offset its impermanent loss. Below this APR the position loses to holding on a risk-adjusted basis.
 
 A concentrated range magnifies impermanent loss relative to full range. The narrower the band, the more
 fees per dollar while in range, and the larger the loss when price moves.
@@ -25,6 +26,7 @@ The decision and impermanent-loss functions take a price band, so convert first.
 ## Volatility and out-of-range probability
 
 - `realizedVolAnnualized(series)` reads a price series and returns annualised volatility from log returns.
+- `ewmaVolAnnualized(series, lambda)` is a recency-weighted alternative (RiskMetrics, default `lambda` 0.94). Prefer it when a band should react quickly to a volatility regime change.
 - `outOfRangeProbability(currentPrice, band, volAnnual, horizonDays)` estimates the chance the price sits
   outside the band at the end of the horizon, under a driftless lognormal walk. This is an endpoint
   approximation, not a first-passage probability, so it understates the chance of touching a bound during
