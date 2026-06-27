@@ -24,6 +24,7 @@ const REQUIRED = [
   "LICENSE",
   "install.sh",
   "install-custom.sh",
+  "agents/openai.yaml",
   "skill/SKILL.md",
   "skill/resources.md",
   "rules/defi-money.md",

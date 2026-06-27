@@ -1,14 +1,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+const evalsPath = (name: string): string => fileURLToPath(new URL(`../../evals/${name}`, import.meta.url));
 function loadEvals(name: string): unknown {
-  const path = fileURLToPath(new URL(`../../evals/${name}`, import.meta.url));
-  return JSON.parse(readFileSync(path, "utf8"));
+  return JSON.parse(readFileSync(evalsPath(name), "utf8"));
 }
 
-test("trigger queries are balanced and well formed", () => {
+// The evals folder is repo tooling, not part of an installed skill. Skip the lint
+// when it is not reachable so the suite still passes from an installed copy.
+const present = existsSync(evalsPath("trigger-queries.json")) && existsSync(evalsPath("evals.json"));
+
+test("trigger queries are balanced and well formed", { skip: !present }, () => {
   const queries = loadEvals("trigger-queries.json") as Array<{ query: string; should_trigger: boolean }>;
   assert.ok(Array.isArray(queries));
   for (const q of queries) {
@@ -22,7 +26,7 @@ test("trigger queries are balanced and well formed", () => {
   assert.ok(negative >= 10, `want >=10 negative, got ${negative}`);
 });
 
-test("output evals carry a prompt, expected output, and gradable assertions", () => {
+test("output evals carry a prompt, expected output, and gradable assertions", { skip: !present }, () => {
   const doc = loadEvals("evals.json") as {
     skill_name: string;
     evals: Array<{ id: number; prompt: string; expected_output: string; files: unknown[]; assertions: string[] }>;

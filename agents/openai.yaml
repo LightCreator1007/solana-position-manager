@@ -1,0 +1,4 @@
+interface:
+  display_name: "Position Manager"
+  short_description: "Read-only Solana LP, lending, and staking analysis with a tax-aware rebalance decision."
+  default_prompt: "Render a read-only position health report for my wallet and tell me whether to rebalance, with the expected value net of impermanent loss, gas, slippage, and tax."
