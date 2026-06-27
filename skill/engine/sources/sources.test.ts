@@ -4,6 +4,9 @@ import * as orca from "./orca.ts";
 import * as raydium from "./raydium.ts";
 import * as meteora from "./meteora.ts";
 import * as kamino from "./kamino.ts";
+import * as raydiumCpmm from "./raydium-cpmm.ts";
+import * as meteoraDamm from "./meteora-damm-v2.ts";
+import { ammAmountsFromShare } from "./amm.ts";
 import { EngineError } from "../errors.ts";
 
 const SOL = "So11111111111111111111111111111111111111112";
@@ -117,6 +120,52 @@ test("discoverPositionMints returns only single-unit NFT mints", async () => {
   });
   assert.ok(mints.includes("PosMint"));
   assert.ok(!mints.includes("UsdcAta"));
+});
+
+test("ammAmountsFromShare splits reserves by pool share", () => {
+  const half = ammAmountsFromShare(50n, 100n, 1000n, 2000n);
+  assert.equal(half.amountA, 500n);
+  assert.equal(half.amountB, 1000n);
+  assert.deepEqual(ammAmountsFromShare(10n, 0n, 1n, 1n), { amountA: 0n, amountB: 0n });
+});
+
+test("raydium cpmm maps a constant-product position by share of pool", () => {
+  const p = raydiumCpmm.toPosition({
+    poolId: "Cp1", mintA: SOL, decimalsA: 9, mintB: USDC, decimalsB: 6,
+    lpTokens: 25n, lpSupply: 100n, reserveA: 4_000_000_000n, reserveB: 600_000_000n, feeOwedB: 5n,
+  });
+  assert.equal(p.venue, "raydium-cpmm");
+  assert.equal(p.kind, "amm");
+  assert.equal(p.band, undefined);
+  assert.equal(p.legs.a.raw, 1_000_000_000n);
+  assert.equal(p.legs.b?.raw, 150_000_000n);
+  assert.equal(p.unclaimed.b, 5n);
+});
+
+test("meteora damm v2 maps a constant-product position and reads raw records", async () => {
+  const direct = meteoraDamm.toPosition({
+    pool: "Dm1", mintA: SOL, decimalsA: 9, mintB: USDC, decimalsB: 6,
+    lpTokens: 1n, lpSupply: 4n, reserveA: 8_000_000_000n, reserveB: 1_200_000_000n,
+  });
+  assert.equal(direct.venue, "meteora-damm-v2");
+  assert.equal(direct.legs.a.raw, 2_000_000_000n);
+
+  const positions = await meteoraDamm.read("owner", {}, async () => [
+    { pool: "Dm2", tokenAMint: SOL, tokenBMint: USDC, lpTokens: "2", lpSupply: "8", reserveA: "8", reserveB: "16" },
+  ]);
+  assert.equal(positions[0].ref, "Dm2");
+  assert.equal(positions[0].legs.a.raw, 2n);
+});
+
+test("constant-product live paths fail loudly without a fetcher", async () => {
+  await assert.rejects(
+    () => raydiumCpmm.read("owner"),
+    (e: unknown) => e instanceof EngineError,
+  );
+  await assert.rejects(
+    () => meteoraDamm.read("owner"),
+    (e: unknown) => e instanceof EngineError,
+  );
 });
 
 test("the live path needs an rpc url and a venue sdk, and says which is missing", async () => {

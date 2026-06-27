@@ -1,8 +1,9 @@
 // Cross-venue position contract. Token amounts are bigint base units.
 // USD figures elsewhere are derived estimates and use number.
 
-export type Venue = "orca" | "raydium" | "meteora-dlmm" | "kamino";
-export type PositionKind = "clmm" | "vault" | "lending" | "staking";
+export type Venue = "orca" | "raydium" | "raydium-cpmm" | "meteora-dlmm" | "meteora-damm-v2" | "kamino";
+// "amm" is a constant-product, full-range LP position, valued by share of pool.
+export type PositionKind = "clmm" | "amm" | "vault" | "lending" | "staking";
 export type TokenProgram = "spl-token" | "token-2022";
 
 export interface TokenLeg {

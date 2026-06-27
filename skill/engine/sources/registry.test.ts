@@ -4,18 +4,14 @@ import { VENUES, getVenue, listVenues, supportedVenues, plannedVenues } from "./
 
 const BASE58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-test("the four built readers are present and supported", () => {
-  for (const id of ["orca", "raydium", "meteora-dlmm", "kamino"]) {
+test("the six built readers are present and supported", () => {
+  for (const id of ["orca", "raydium", "raydium-cpmm", "meteora-dlmm", "meteora-damm-v2", "kamino"]) {
     const v = getVenue(id);
     assert.ok(v, `missing ${id}`);
     assert.notEqual(v!.discoveryStatus, "planned");
   }
-});
-
-test("the roadmap venues are listed as planned, not supported", () => {
-  const planned = plannedVenues().map((v) => v.id);
-  assert.deepEqual(planned.sort(), ["meteora-damm-v2", "raydium-cpmm"]);
-  assert.ok(!supportedVenues().some((v) => v.discoveryStatus === "planned"));
+  assert.equal(supportedVenues().length, 6);
+  assert.equal(plannedVenues().length, 0);
 });
 
 test("any declared program id is a plausible base58 address", () => {
