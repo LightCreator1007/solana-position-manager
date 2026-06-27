@@ -74,7 +74,6 @@ plans. It does not sign or submit transactions.
 position-manager-skill/
   CLAUDE.md
   README.md
-  ROADMAP.md
   install.sh         Claude (.claude) or Codex (--agents, .agents)
   install-custom.sh
   .claude-plugin/marketplace.json

@@ -26,21 +26,27 @@ counted.
 - Flags out-of-range positions, low lending health, concentration, Token-2022 mints, locked positions, thin liquidity, and inverted price orientation.
 - Renders a position health report as Markdown and JSON.
 
-## What is new here
+## Design
 
-Three things the existing approaches leave on the table:
+The judgement layer is a small TypeScript engine under `skill/engine/`. Each module is pure and unit
+tested, and the whole engine runs on saved fixtures with no network, so every number is reproducible and
+the demo is real rather than hand-written.
 
-1. A tax-aware rebalance decision. The engine nets projected fees against impermanent loss, gas, slippage, and the tax drag of realising a gain when the position closes. A rebalance that looks worthwhile before tax can be negative after it. The decision exposes both.
-2. A file-backed snapshot ledger. P&L, fee velocity, and the volatility that drives the decision are measured from a local append-only history, with no background process.
-3. Offline, fixture-first determinism. The whole engine runs and tests on saved fixtures with no network, so results are reproducible and the demo is real, not hand-written.
+The rebalance decision is expected-value based. It nets projected fees against impermanent loss, gas,
+slippage, and the tax drag of realising a gain when a position closes, so a move that looks worthwhile
+before tax can read as negative after it. The decision exposes both.
 
-Supporting this build:
+P&L, fee velocity, and the volatility that drives the decision come from a local append-only snapshot
+ledger, measured from history rather than assumed, with no background process.
 
-- An eval harness: 10 positive and 10 near-miss trigger queries for description precision, plus output evals with gradable assertions tuned to the tax-aware decision, the IL math, and the no-signing posture.
-- A skill validator that checks structure, frontmatter, routing links, placeholder text, and the example fixtures' golden verdicts.
-- Typed `EngineError` at the IO boundaries, with a remediation per code and secret redaction, so a failed fetch reports a clear blocker rather than inventing data.
-- A read-only JSON-RPC client and position-NFT discovery that use parsed account methods, with no hand-rolled byte decoding.
-- A cross-runtime install for Claude Code (`.claude`) and Codex (`.agents`).
+Data enters through an injectable seam. A read-only JSON-RPC client and position-NFT discovery use parsed
+account methods, with no hand-rolled byte decoding, and every IO boundary returns a typed `EngineError`
+with a remediation and secret redaction, so a failed fetch reports a clear blocker rather than inventing
+data.
+
+The skill is verifiable on its own terms. `scripts/validate.mjs` checks structure, frontmatter, routing
+links, placeholder text, and the example fixtures' golden verdicts, and `evals/` holds trigger queries
+and output evals with gradable assertions. It installs into Claude Code (`.claude`) and Codex (`.agents`).
 
 ## What it does not do
 
@@ -125,7 +131,6 @@ position-manager-skill/
   rules/                    defi-money
   scripts/                  validate.mjs (skill linter)
   evals/                    trigger queries and output evals
-  ROADMAP.md                planned venues: Raydium CPMM, Meteora DAMM v2
 ```
 
 ## Verify before trusting
