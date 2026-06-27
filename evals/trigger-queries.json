@@ -1,0 +1,23 @@
+[
+  { "query": "My SOL/USDC Orca position is out of range. Should I rebalance? Show the EV with and without tax.", "should_trigger": true },
+  { "query": "Render a position health report for my wallet across Orca, Raydium, and Meteora.", "should_trigger": true },
+  { "query": "Quantify impermanent loss for my concentrated Raydium CLMM range versus holding.", "should_trigger": true },
+  { "query": "From my snapshot history, show my LP P&L and fee velocity and whether I am beating HODL.", "should_trigger": true },
+  { "query": "What is my Kamino lending health factor and how close am I to liquidation?", "should_trigger": true },
+  { "query": "Decide whether to widen my Meteora DLMM range given current volatility, net of gas and slippage.", "should_trigger": true },
+  { "query": "Give me a tax-aware rebalance decision using FIFO cost basis for my SOL/USDC position.", "should_trigger": true },
+  { "query": "Score my DeFi portfolio health and flag concentration and out-of-range positions.", "should_trigger": true },
+  { "query": "Append today's snapshot of my positions to the ledger and report fee velocity.", "should_trigger": true },
+  { "query": "Should I hold or exit this LP? Show the break-even fee APR against impermanent loss.", "should_trigger": true },
+
+  { "query": "Swap 5 SOL into USDC on Jupiter at the best route and show the price impact.", "should_trigger": false },
+  { "query": "Launch a new SPL token with metadata and mint authority settings.", "should_trigger": false },
+  { "query": "Write a script that signs and sends 0.1 SOL to another wallet on devnet.", "should_trigger": false },
+  { "query": "Audit this Anchor program for missing signer checks and arithmetic overflow.", "should_trigger": false },
+  { "query": "Mint a Metaplex Core NFT collection and upload the images.", "should_trigger": false },
+  { "query": "Bridge USDC from Ethereum to Solana and show the transfer status.", "should_trigger": false },
+  { "query": "Stream all transactions for a wallet into Postgres with a Helius webhook.", "should_trigger": false },
+  { "query": "Explain how Solana priority fees and the fee market work.", "should_trigger": false },
+  { "query": "Build a 30-day SOL price chart for my dashboard.", "should_trigger": false },
+  { "query": "Create a token airdrop script that sends an SPL token to 1000 wallets.", "should_trigger": false }
+]

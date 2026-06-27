@@ -38,6 +38,9 @@ const REQUIRED = [
   "skill/engine/fixtures/examples/raydium-clmm.json",
   "skill/engine/fixtures/examples/meteora-dlmm.json",
   "skill/engine/fixtures/examples/kamino-vault.json",
+  "evals/trigger-queries.json",
+  "evals/evals.json",
+  "evals/README.md",
 ];
 
 const LEAVES = [
