@@ -1,5 +1,6 @@
-import type { Snapshot } from "./model.ts";
+import type { Position, Snapshot } from "./model.ts";
 import { positionValueUsd, portfolioValueUsd } from "./pnl.ts";
+import { tickToUiPrice } from "./sources/ticks.ts";
 
 export type Severity = "info" | "medium" | "high" | "critical";
 
@@ -8,6 +9,53 @@ export interface Escalation {
   severity: Severity;
   message: string;
   ref?: string;
+}
+
+const THIN_LIQUIDITY_USD = 50_000;
+const LOW_TURNOVER_RATIO = 0.05;
+// A band-implied price this far from the oracle ratio is structural (wrong token
+// order or wrong decimals), not market drift. Decimals slips are >=1000x and an
+// inverted pair is larger still, while even an extreme out-of-range stays well under.
+const ORIENTATION_FACTOR = 20;
+
+// True when the band-implied price and the oracle price ratio disagree by more
+// than `factor`, which points at an inverted pair or a decimals mistake.
+export function orientationLooksOff(impliedPrice: number, refPrice: number, factor = ORIENTATION_FACTOR): boolean {
+  if (!(impliedPrice > 0 && refPrice > 0)) return false;
+  const ratio = impliedPrice / refPrice;
+  return ratio > factor || ratio < 1 / factor;
+}
+
+function tokenFlags(p: Position): Escalation[] {
+  const out: Escalation[] = [];
+  const legs = [p.legs.a, p.legs.b].filter((l) => l !== undefined);
+  const token2022 = legs.some((l) => l!.tokenProgram === "token-2022" || l!.hasTransferHook);
+  const transferFee = legs.some((l) => (l!.transferFeeBps ?? 0) > 0);
+  if (token2022 || transferFee) {
+    out.push({
+      code: "token-2022",
+      severity: "medium",
+      message: `position on ${p.venue} holds a Token-2022 mint; verify transfer hook and transfer fee before sizing or exit`,
+      ref: p.ref,
+    });
+  }
+  return out;
+}
+
+function orientationFlag(p: Position, priceUsd: Record<string, number>): Escalation | null {
+  if (!p.band || p.band.unit !== "tick" || !p.legs.b) return null;
+  const midTick = (p.band.lower + p.band.upper) / 2;
+  const implied = tickToUiPrice(midTick, p.legs.a.decimals, p.legs.b.decimals);
+  const priceA = priceUsd[p.legs.a.mint] ?? 0;
+  const priceB = priceUsd[p.legs.b.mint] ?? 0;
+  if (!(priceA > 0 && priceB > 0)) return null;
+  if (!orientationLooksOff(implied, priceA / priceB)) return null;
+  return {
+    code: "price-orientation",
+    severity: "medium",
+    message: `band-implied price on ${p.venue} diverges from the oracle ratio; check token order and decimals`,
+    ref: p.ref,
+  };
 }
 
 export function venueShares(snap: Snapshot): Record<string, number> {
@@ -49,6 +97,41 @@ export function escalations(snap: Snapshot): Escalation[] {
         });
       }
     }
+
+    if (p.locked === true) {
+      out.push({
+        code: "locked",
+        severity: "high",
+        message: `position on ${p.venue} is locked and cannot be withdrawn or rebalanced until it unlocks`,
+        ref: p.ref,
+      });
+    }
+
+    if (p.poolLiquidityUsd !== undefined && p.poolLiquidityUsd < THIN_LIQUIDITY_USD) {
+      out.push({
+        code: "thin-liquidity",
+        severity: "medium",
+        message: `pool liquidity $${p.poolLiquidityUsd.toFixed(0)} is thin; an exit may move the price`,
+        ref: p.ref,
+      });
+    }
+    if (
+      p.poolVolume24hUsd !== undefined &&
+      p.poolLiquidityUsd !== undefined &&
+      p.poolLiquidityUsd > 0 &&
+      p.poolVolume24hUsd / p.poolLiquidityUsd < LOW_TURNOVER_RATIO
+    ) {
+      out.push({
+        code: "low-turnover",
+        severity: "info",
+        message: `pool turnover is low; fees may not justify a tight range on ${p.venue}`,
+        ref: p.ref,
+      });
+    }
+
+    out.push(...tokenFlags(p));
+    const orientation = orientationFlag(p, snap.priceUsd);
+    if (orientation) out.push(orientation);
   }
 
   for (const [venue, share] of Object.entries(venueShares(snap))) {

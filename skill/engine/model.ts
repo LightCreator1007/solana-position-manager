@@ -3,11 +3,17 @@
 
 export type Venue = "orca" | "raydium" | "meteora-dlmm" | "kamino";
 export type PositionKind = "clmm" | "vault" | "lending" | "staking";
+export type TokenProgram = "spl-token" | "token-2022";
 
 export interface TokenLeg {
   mint: string;
   decimals: number;
   raw: bigint;
+  tokenProgram?: TokenProgram;
+  // Token-2022 traits that change what actually settles. A transfer hook can
+  // block or gate a move; a transfer fee shaves the amount that arrives.
+  transferFeeBps?: number;
+  hasTransferHook?: boolean;
 }
 
 // Bounds are venue-tagged. CLMM ticks are half-open [lower, upper);
@@ -30,6 +36,10 @@ export interface Position {
   unclaimed: { a: bigint; b?: bigint };
   health?: number;
   openedAtUnix?: number;
+  // Operational context for risk flags. Optional; set from chain or pool data.
+  locked?: boolean;
+  poolLiquidityUsd?: number;
+  poolVolume24hUsd?: number;
 }
 
 export type PriceSource = "jupiter" | "birdeye" | "pool" | "stale";

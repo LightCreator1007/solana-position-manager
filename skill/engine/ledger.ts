@@ -8,6 +8,9 @@ interface TokenLegDto {
   mint: string;
   decimals: number;
   raw: string;
+  tokenProgram?: TokenLeg["tokenProgram"];
+  transferFeeBps?: number;
+  hasTransferHook?: boolean;
 }
 
 interface PositionDto {
@@ -20,6 +23,9 @@ interface PositionDto {
   unclaimed: { a: string; b?: string };
   health?: number;
   openedAtUnix?: number;
+  locked?: boolean;
+  poolLiquidityUsd?: number;
+  poolVolume24hUsd?: number;
 }
 
 interface SnapshotDto {
@@ -30,17 +36,21 @@ interface SnapshotDto {
   positions: PositionDto[];
 }
 
-const legToDto = (leg: TokenLeg): TokenLegDto => ({
-  mint: leg.mint,
-  decimals: leg.decimals,
-  raw: leg.raw.toString(),
-});
+const legToDto = (leg: TokenLeg): TokenLegDto => {
+  const dto: TokenLegDto = { mint: leg.mint, decimals: leg.decimals, raw: leg.raw.toString() };
+  if (leg.tokenProgram !== undefined) dto.tokenProgram = leg.tokenProgram;
+  if (leg.transferFeeBps !== undefined) dto.transferFeeBps = leg.transferFeeBps;
+  if (leg.hasTransferHook !== undefined) dto.hasTransferHook = leg.hasTransferHook;
+  return dto;
+};
 
-const legFromDto = (dto: TokenLegDto): TokenLeg => ({
-  mint: dto.mint,
-  decimals: dto.decimals,
-  raw: BigInt(dto.raw),
-});
+const legFromDto = (dto: TokenLegDto): TokenLeg => {
+  const leg: TokenLeg = { mint: dto.mint, decimals: dto.decimals, raw: BigInt(dto.raw) };
+  if (dto.tokenProgram !== undefined) leg.tokenProgram = dto.tokenProgram;
+  if (dto.transferFeeBps !== undefined) leg.transferFeeBps = dto.transferFeeBps;
+  if (dto.hasTransferHook !== undefined) leg.hasTransferHook = dto.hasTransferHook;
+  return leg;
+};
 
 function positionToDto(p: Position): PositionDto {
   const dto: PositionDto = {
@@ -56,6 +66,9 @@ function positionToDto(p: Position): PositionDto {
   if (p.inRange !== undefined) dto.inRange = p.inRange;
   if (p.health !== undefined) dto.health = p.health;
   if (p.openedAtUnix !== undefined) dto.openedAtUnix = p.openedAtUnix;
+  if (p.locked !== undefined) dto.locked = p.locked;
+  if (p.poolLiquidityUsd !== undefined) dto.poolLiquidityUsd = p.poolLiquidityUsd;
+  if (p.poolVolume24hUsd !== undefined) dto.poolVolume24hUsd = p.poolVolume24hUsd;
   return dto;
 }
 
@@ -73,6 +86,9 @@ function positionFromDto(dto: PositionDto): Position {
   if (dto.inRange !== undefined) p.inRange = dto.inRange;
   if (dto.health !== undefined) p.health = dto.health;
   if (dto.openedAtUnix !== undefined) p.openedAtUnix = dto.openedAtUnix;
+  if (dto.locked !== undefined) p.locked = dto.locked;
+  if (dto.poolLiquidityUsd !== undefined) p.poolLiquidityUsd = dto.poolLiquidityUsd;
+  if (dto.poolVolume24hUsd !== undefined) p.poolVolume24hUsd = dto.poolVolume24hUsd;
   return p;
 }
 
