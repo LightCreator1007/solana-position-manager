@@ -4,9 +4,17 @@ import * as orca from "./orca.ts";
 import * as raydium from "./raydium.ts";
 import * as meteora from "./meteora.ts";
 import * as kamino from "./kamino.ts";
+import { EngineError } from "../errors.ts";
 
 const SOL = "So11111111111111111111111111111111111111112";
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+function router(routes: Record<string, unknown>): typeof fetch {
+  return (async (_url: string, init?: { body?: string }) => {
+    const method = JSON.parse(init?.body ?? "{}").method as string;
+    return { ok: true, status: 200, json: async () => ({ result: routes[method] }) };
+  }) as unknown as typeof fetch;
+}
 
 test("orca range is half-open", () => {
   const inside = orca.toPosition({
@@ -71,6 +79,53 @@ test("read maps raw records through an injected fetcher", async () => {
   assert.equal(positions[0].unclaimed.b, 7n);
 });
 
-test("the live path errors clearly when the optional dependency is absent", async () => {
-  await assert.rejects(() => orca.read("owner"), /optional dependency/);
+test("orcaRowToRaw derives base-unit amounts and range from liquidity and ticks", () => {
+  const inRange = orca.toPositionFromRaw(
+    orca.orcaRowToRaw({
+      whirlpool: "P", tickLower: -100, tickUpper: 100, tickCurrent: 0,
+      mintA: SOL, decimalsA: 9, mintB: USDC, decimalsB: 6, liquidity: 1_000_000,
+    }),
+  );
+  assert.equal(inRange.inRange, true);
+  assert.ok(inRange.legs.a.raw > 0n && (inRange.legs.b?.raw ?? 0n) > 0n);
+
+  const belowRange = orca.orcaRowToRaw({
+    whirlpool: "P", tickLower: -100, tickUpper: 100, tickCurrent: -200,
+    mintA: SOL, decimalsA: 9, mintB: USDC, decimalsB: 6, liquidity: 1_000_000,
+  });
+  assert.equal(belowRange.amountB, "0");
+  assert.notEqual(belowRange.amountA, "0");
+
+  const aboveRange = orca.orcaRowToRaw({
+    whirlpool: "P", tickLower: -100, tickUpper: 100, tickCurrent: 200,
+    mintA: SOL, decimalsA: 9, mintB: USDC, decimalsB: 6, liquidity: 1_000_000,
+  });
+  assert.equal(aboveRange.amountA, "0");
+  assert.notEqual(aboveRange.amountB, "0");
+});
+
+test("discoverPositionMints returns only single-unit NFT mints", async () => {
+  const payload = {
+    value: [
+      { account: { data: { parsed: { info: { mint: "PosMint", tokenAmount: { amount: "1", decimals: 0 } } } } } },
+      { account: { data: { parsed: { info: { mint: "UsdcAta", tokenAmount: { amount: "9", decimals: 6 } } } } } },
+    ],
+  };
+  const mints = await orca.discoverPositionMints("owner", {
+    rpcUrl: "https://rpc.test",
+    fetchImpl: router({ getTokenAccountsByOwner: payload }),
+  });
+  assert.ok(mints.includes("PosMint"));
+  assert.ok(!mints.includes("UsdcAta"));
+});
+
+test("the live path needs an rpc url and a venue sdk, and says which is missing", async () => {
+  await assert.rejects(
+    () => orca.read("owner"),
+    (e: unknown) => e instanceof EngineError && e.code === "INVALID_INPUT",
+  );
+  await assert.rejects(
+    () => orca.read("owner", { rpcUrl: "https://rpc.test" }),
+    (e: unknown) => e instanceof EngineError && e.code === "DEPENDENCY_MISSING",
+  );
 });
