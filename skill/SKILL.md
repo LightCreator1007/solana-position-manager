@@ -1,6 +1,6 @@
 ---
 name: position-manager
-description: Track and manage Solana liquidity, lending, and staking positions across Orca Whirlpools, Raydium CLMM, Meteora DLMM, and Kamino. Computes impermanent loss, out-of-range alerts, a tax-aware rebalance expected-value decision, FIFO/HIFO/SpecID tax lots, time-weighted P&L from a local snapshot ledger, and a portfolio health report. Analysis and planning only. It never signs or submits transactions.
+description: Track and manage Solana liquidity, lending, and staking positions across Orca Whirlpools, Raydium CLMM and CPMM, Meteora DLMM and DAMM v2, and Kamino. Computes impermanent loss, out-of-range alerts, a tax-aware rebalance expected-value decision, FIFO/HIFO/SpecID tax lots, time-weighted P&L from a local snapshot ledger, and a portfolio health report. Analysis and planning only. It never signs or submits transactions.
 user-invocable: true
 ---
 
@@ -13,7 +13,7 @@ Jupiter skill. This skill plans, it does not execute.
 
 ## What this skill does
 
-- Normalises positions across Orca, Raydium, Meteora DLMM, and Kamino into one shape.
+- Normalises positions across Orca, Raydium CLMM and CPMM, Meteora DLMM and DAMM v2, and Kamino into one shape.
 - Computes impermanent loss with the concentrated-liquidity value function, not a constant-product approximation.
 - Decides whether to rebalance by expected value: projected fees against impermanent loss, gas, slippage, and tax drag.
 - Keeps a local append-only snapshot ledger so P&L and fee velocity are measured, not assumed.

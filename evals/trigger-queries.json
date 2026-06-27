@@ -9,6 +9,7 @@
   { "query": "Score my DeFi portfolio health and flag concentration and out-of-range positions.", "should_trigger": true },
   { "query": "Append today's snapshot of my positions to the ledger and report fee velocity.", "should_trigger": true },
   { "query": "Should I hold or exit this LP? Show the break-even fee APR against impermanent loss.", "should_trigger": true },
+  { "query": "Compare fees versus impermanent loss for my Raydium CPMM position and tell me whether to compound or exit.", "should_trigger": true },
 
   { "query": "Swap 5 SOL into USDC on Jupiter at the best route and show the price impact.", "should_trigger": false },
   { "query": "Launch a new SPL token with metadata and mint authority settings.", "should_trigger": false },

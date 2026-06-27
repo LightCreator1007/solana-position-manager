@@ -18,7 +18,7 @@ counted.
 
 ## What it does
 
-- Normalises positions across Orca Whirlpools, Raydium CLMM, Meteora DLMM, and Kamino into one shape.
+- Normalises positions across Orca Whirlpools, Raydium CLMM and CPMM, Meteora DLMM and DAMM v2, and Kamino into one shape.
 - Computes impermanent loss with the concentrated-liquidity value function, not a constant-product approximation.
 - Decides whether to rebalance by expected value: projected fees against impermanent loss, gas, slippage, and tax drag.
 - Tracks cost basis with FIFO, HIFO, or specific identification.

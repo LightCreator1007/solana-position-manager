@@ -54,7 +54,9 @@ the SDK package, the fields a reader needs, and current limitations.
 | --- | --- |
 | Orca Whirlpools | `whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc` |
 | Raydium CLMM | `CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK` |
+| Raydium CPMM | `CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C` |
 | Meteora DLMM | `LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo` |
+| Meteora DAMM v2 | confirm on an explorer before relying on the live path |
 | Kamino | discovered through the SDK; no single CLMM program to scan |
 
 Verify these against the explorer before relying on them.
