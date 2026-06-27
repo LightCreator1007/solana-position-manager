@@ -1,0 +1,27 @@
+{
+  "takenAtUnix": 1718200000,
+  "wallet": "Example1111111111111111111111111111111111111",
+  "priceUsd": {
+    "So11111111111111111111111111111111111111112": 150,
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1
+  },
+  "priceSource": {
+    "So11111111111111111111111111111111111111112": "jupiter",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "jupiter"
+  },
+  "positions": [
+    {
+      "venue": "meteora-damm-v2",
+      "kind": "amm",
+      "ref": "MeteoraDammExampleSOLUSDC11111111111111111",
+      "legs": {
+        "a": { "mint": "So11111111111111111111111111111111111111112", "decimals": 9, "raw": "4000000000" },
+        "b": { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6, "raw": "600000000" }
+      },
+      "unclaimed": { "a": "0", "b": "800000" },
+      "poolLiquidityUsd": 1500000,
+      "poolVolume24hUsd": 500000,
+      "openedAtUnix": 1718000000
+    }
+  ]
+}

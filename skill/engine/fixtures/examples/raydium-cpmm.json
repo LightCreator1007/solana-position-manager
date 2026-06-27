@@ -1,0 +1,27 @@
+{
+  "takenAtUnix": 1718200000,
+  "wallet": "Example1111111111111111111111111111111111111",
+  "priceUsd": {
+    "So11111111111111111111111111111111111111112": 150,
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 1
+  },
+  "priceSource": {
+    "So11111111111111111111111111111111111111112": "jupiter",
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "jupiter"
+  },
+  "positions": [
+    {
+      "venue": "raydium-cpmm",
+      "kind": "amm",
+      "ref": "RaydiumCpmmExampleSOLUSDC111111111111111111",
+      "legs": {
+        "a": { "mint": "So11111111111111111111111111111111111111112", "decimals": 9, "raw": "6000000000" },
+        "b": { "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "decimals": 6, "raw": "900000000" }
+      },
+      "unclaimed": { "a": "0", "b": "1500000" },
+      "poolLiquidityUsd": 2000000,
+      "poolVolume24hUsd": 700000,
+      "openedAtUnix": 1718000000
+    }
+  ]
+}

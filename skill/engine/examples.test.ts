@@ -11,7 +11,7 @@ function loadExample(name: string) {
   return deserializeSnapshot(readFileSync(path, "utf8"));
 }
 
-const NAMES = ["orca-clmm", "raydium-clmm", "meteora-dlmm", "kamino-vault"];
+const NAMES = ["orca-clmm", "raydium-clmm", "meteora-dlmm", "kamino-vault", "raydium-cpmm", "meteora-damm-v2"];
 
 test("every example renders a non-empty report", () => {
   for (const name of NAMES) {
@@ -40,4 +40,15 @@ test("kamino example is a vault that is in range", () => {
   const report = renderReport(loadExample("kamino-vault"));
   assert.equal(report.json.rows[0].kind, "vault");
   assert.equal(report.json.rows[0].inRange, true);
+});
+
+test("constant-product examples are amm positions with no range and no out-of-range alert", () => {
+  for (const name of ["raydium-cpmm", "meteora-damm-v2"]) {
+    const snap = loadExample(name);
+    const report = renderReport(snap);
+    assert.equal(report.json.rows[0].kind, "amm");
+    assert.equal(report.json.rows[0].inRange, null);
+    assert.ok(report.json.totalValueUsd > 0);
+    assert.ok(!escalations(snap).some((a) => a.code === "out-of-range"));
+  }
 });

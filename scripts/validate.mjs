@@ -39,6 +39,8 @@ const REQUIRED = [
   "skill/engine/fixtures/examples/raydium-clmm.json",
   "skill/engine/fixtures/examples/meteora-dlmm.json",
   "skill/engine/fixtures/examples/kamino-vault.json",
+  "skill/engine/fixtures/examples/raydium-cpmm.json",
+  "skill/engine/fixtures/examples/meteora-damm-v2.json",
   "evals/trigger-queries.json",
   "evals/evals.json",
   "evals/README.md",
@@ -110,6 +112,12 @@ async function checkGoldenVerdicts() {
 
   const kamino = renderReport(load("kamino-vault")).json;
   if (kamino.rows[0]?.kind !== "vault") fail("kamino example should be a vault");
+
+  for (const name of ["raydium-cpmm", "meteora-damm-v2"]) {
+    const json = renderReport(load(name)).json;
+    if (json.rows[0]?.kind !== "amm") fail(`${name} example should be an amm position`);
+    if (json.totalValueUsd <= 0) fail(`${name} example has no value`);
+  }
 }
 
 async function main() {
