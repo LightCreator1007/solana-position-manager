@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { guard, type SafetyCaps, type PlanMetrics, type SafetyContext } from "./safety.ts";
+import { guard, txConfirmPhrase, type SafetyCaps, type PlanMetrics, type SafetyContext } from "./safety.ts";
 
 const caps: SafetyCaps = {
   maxSlippageBps: 50,
@@ -21,8 +21,9 @@ function ctx(over: Partial<SafetyContext> = {}): SafetyContext {
     dryRun: false,
     requireConfirm: true,
     killSwitch: false,
-    typedPhrase: "CONFIRM REBALANCE orca Whirl123",
-    expectedPhrase: "CONFIRM REBALANCE orca Whirl123",
+    venue: "orca",
+    ref: "Whirl123",
+    typedPhrase: txConfirmPhrase("orca", "Whirl123", metrics.txBase64),
     dailyRealizedLossUsd: 0,
     simulate: async () => ({ err: null }),
     ...over,
@@ -58,7 +59,20 @@ test("a wrong confirmation phrase blocks submission", async () => {
   assert.equal(r.ok, false);
 });
 
-test("correct phrase with live mode clears submission", async () => {
+test("the confirm phrase is bound to the simulated transaction bytes", async () => {
+  // A phrase typed for one transaction must not clear a different transaction,
+  // even with the same venue and ref. This closes the swap-after-confirm gap.
+  const phraseForOtherTx = txConfirmPhrase("orca", "Whirl123", "Zm9v");
+  const r = await guard(metrics, caps, ctx({ typedPhrase: phraseForOtherTx }));
+  assert.equal(r.ok, false);
+});
+
+test("txConfirmPhrase is deterministic and changes with the transaction", () => {
+  assert.equal(txConfirmPhrase("orca", "Whirl123", "AA=="), txConfirmPhrase("orca", "Whirl123", "AA=="));
+  assert.notEqual(txConfirmPhrase("orca", "Whirl123", "AA=="), txConfirmPhrase("orca", "Whirl123", "Zm9v"));
+});
+
+test("correct tx-bound phrase with live mode clears submission", async () => {
   const r = await guard(metrics, caps, ctx());
   assert.deepEqual(r, { ok: true });
 });

@@ -127,6 +127,63 @@ export function ledgerPath(wallet: string, opts: LedgerOpts = {}): string {
   return join(ledgerHome(opts), "snapshots", `${safe}.jsonl`);
 }
 
+function lossLedgerPath(wallet: string, opts: LedgerOpts = {}): string {
+  const safe = wallet.replace(/[^A-Za-z0-9_-]/g, "_");
+  return join(ledgerHome(opts), "losses", `${safe}.jsonl`);
+}
+
+const DAY_SECONDS = 86_400;
+
+// Append a realized loss in USD with its timestamp. The daily-loss cap means
+// nothing if it lives in a counter that resets when the process restarts, so it
+// is persisted alongside the snapshot ledger.
+export function recordRealizedLoss(
+  wallet: string,
+  lossUsd: number,
+  opts: LedgerOpts = {},
+  nowUnix?: number,
+): void {
+  const t = nowUnix ?? Math.floor(Date.now() / 1000);
+  const path = lossLedgerPath(wallet, opts);
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, JSON.stringify({ t, lossUsd }) + "\n", "utf8");
+  } catch (err) {
+    throw new EngineError("LEDGER_IO", `ledger: cannot record realized loss for ${wallet}`, {
+      cause: classifyError(err).message,
+    });
+  }
+}
+
+// Sum the realized losses recorded in the current UTC day. Pass this into the
+// safety guard's `dailyRealizedLossUsd` so the cap holds across runs.
+export function dailyRealizedLossUsd(wallet: string, opts: LedgerOpts = {}, nowUnix?: number): number {
+  const now = nowUnix ?? Math.floor(Date.now() / 1000);
+  const dayStart = Math.floor(now / DAY_SECONDS) * DAY_SECONDS;
+  const path = lossLedgerPath(wallet, opts);
+  if (!existsSync(path)) return 0;
+  let lines: string[];
+  try {
+    lines = readFileSync(path, "utf8").split("\n");
+  } catch (err) {
+    throw new EngineError("LEDGER_IO", `ledger: cannot read realized losses for ${wallet}`, {
+      cause: classifyError(err).message,
+    });
+  }
+  let total = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const entry = JSON.parse(trimmed) as { t: number; lossUsd: number };
+      if (entry.t >= dayStart && Number.isFinite(entry.lossUsd)) total += entry.lossUsd;
+    } catch {
+      process.stderr.write(`ledger: skipping malformed loss line in ${path}\n`);
+    }
+  }
+  return total;
+}
+
 export function appendSnapshot(snap: Snapshot, opts: LedgerOpts = {}): string {
   const path = ledgerPath(snap.wallet, opts);
   try {

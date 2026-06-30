@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appendSnapshot, readSnapshots, serializeSnapshot, deserializeSnapshot, ledgerPath } from "./ledger.ts";
+import { appendSnapshot, readSnapshots, serializeSnapshot, deserializeSnapshot, ledgerPath, recordRealizedLoss, dailyRealizedLossUsd } from "./ledger.ts";
 import type { Snapshot } from "./model.ts";
 
 const SOL = "So11111111111111111111111111111111111111112";
@@ -70,6 +70,33 @@ test("reading an unknown wallet returns an empty list", () => {
   const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
   try {
     assert.deepEqual(readSnapshots("Nobody", { home }), []);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("daily realized loss sums today's entries and survives a restart", () => {
+  const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
+  const wallet = "WalletTest11111111111111111111111111111111";
+  const noonToday = 1_700_000_000; // a fixed unix second used as "now"
+  try {
+    recordRealizedLoss(wallet, 120, { home }, noonToday);
+    recordRealizedLoss(wallet, 80, { home }, noonToday + 60);
+    // A fresh read (simulating a new process) sees both, not a reset-to-zero counter.
+    assert.equal(dailyRealizedLossUsd(wallet, { home }, noonToday + 120), 200);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("a loss from a previous day does not count against today's cap", () => {
+  const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
+  const wallet = "WalletTest11111111111111111111111111111111";
+  const now = 1_700_000_000;
+  try {
+    recordRealizedLoss(wallet, 500, { home }, now - 86_400 * 2);
+    recordRealizedLoss(wallet, 50, { home }, now);
+    assert.equal(dailyRealizedLossUsd(wallet, { home }, now), 50);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

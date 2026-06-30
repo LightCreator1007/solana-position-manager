@@ -24,11 +24,23 @@ if (result.ok) { /* hand to solana-dev to sign and submit */ }
 ```
 
 `metrics` carries the plan's notional, resulting position size, slippage, and the base64 transaction.
-`ctx` carries the dry-run and confirm flags, the kill switch, the typed phrase, the expected phrase, the
+`ctx` carries the dry-run and confirm flags, the kill switch, the typed phrase, the venue and ref, the
 running daily loss, and the simulate function.
+
+## The confirm phrase binds to the transaction
+
+The expected phrase is not stored in the plan. The guard derives it from the exact bytes it just
+simulated with `txConfirmPhrase(venue, ref, txBase64)`, which appends a hash of the transaction:
+
+```
+CONFIRM REBALANCE <venue> <ref8> <txhash8>
+```
+
+This closes two gaps. The phrase cannot be precomputed before the transaction exists, and a transaction
+swapped between the human reading the plan and submission no longer matches the phrase they typed. Submit
+only the exact transaction the guard cleared; rebuilding it after clearance voids the confirmation.
 
 ## Operational notes
 
-- The kill switch is checked first and halts every path.
-- Track realised daily loss across runs. An in-memory counter that resets on restart would defeat the cap.
-- The confirm phrase comes from the plan in `engine/plan.ts`. The user types it back exactly.
+- The kill switch is checked first and halts every path. Read it fresh from a persisted source each call, not once at startup.
+- Track realised daily loss across runs. An in-memory counter that resets on restart would defeat the cap. Use the ledger-backed daily-loss tracker (`engine/ledger.ts`).

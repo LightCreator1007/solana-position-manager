@@ -25,7 +25,12 @@ EV(rebalance) - EV(hold) =
 
 Required: `currentPrice`, `currentBand` (price space), `depositValueUsd`, `feeVelocityUsdPerDay`,
 `volAnnual`. Optional: `horizonDays` (default 14), `gasCostUsd`, `slippageBps`, `rebalanceNotionalUsd`,
-`candidateWidth`, `realizedGainUsd`, `taxRateBps`, `safetyMarginUsd`.
+`candidateWidth`, `realizedGainUsd`, `taxRateBps`, `safetyMarginUsd`, `concentrationEfficiency`.
+
+`concentrationEfficiency` (default 0.5, range 0 to 1) governs how much of the raw width-ratio fee uplift a
+tighter band is assumed to capture. A narrower range does not earn fees in linear proportion to how much
+tighter it is, so the default discounts the uplift; 1 restores the old linear assumption. Raise it from
+measured post-rebalance fee velocity, do not assume it.
 
 Derive the live inputs from the rest of the engine:
 

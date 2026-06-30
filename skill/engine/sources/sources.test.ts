@@ -107,6 +107,31 @@ test("orcaRowToRaw derives base-unit amounts and range from liquidity and ticks"
   assert.notEqual(aboveRange.amountB, "0");
 });
 
+test("read annotates token traits from chain when an rpc url is given", async () => {
+  const HOOK = "HookMint1111111111111111111111111111111111";
+  const hookMint = {
+    owner: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    data: { parsed: { info: { extensions: [
+      { extension: "transferHook", state: { programId: "Hook9999999999999999999999999999999999999" } },
+    ] } } },
+  };
+  const splMint = { owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", data: { parsed: { info: {} } } };
+  const mintRouter = (async (_url: string, init?: { body?: string }) => {
+    const req = JSON.parse(init?.body ?? "{}") as { method: string; params: unknown[] };
+    const byMint: Record<string, unknown> = { [HOOK]: hookMint, [USDC]: splMint };
+    const value = req.method === "getAccountInfo" ? byMint[req.params[0] as string] ?? null : null;
+    return { ok: true, status: 200, json: async () => ({ result: { value } }) };
+  }) as unknown as typeof fetch;
+
+  const fetcher = async () => [
+    { whirlpool: "P1", tickLowerIndex: -100, tickUpperIndex: 100, tickCurrentIndex: 0, tokenMintA: HOOK, tokenMintB: USDC, amountA: "1", amountB: "1", feeOwedB: "0" },
+  ];
+  const positions = await orca.read("owner", { rpcUrl: "https://rpc.test", fetchImpl: mintRouter }, fetcher);
+  assert.equal(positions[0].legs.a.tokenProgram, "token-2022");
+  assert.equal(positions[0].legs.a.hasTransferHook, true);
+  assert.equal(positions[0].legs.b?.tokenProgram, "spl-token");
+});
+
 test("discoverPositionMints returns only single-unit NFT mints", async () => {
   const payload = {
     value: [

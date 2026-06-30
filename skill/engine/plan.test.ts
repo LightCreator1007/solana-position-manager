@@ -28,10 +28,12 @@ test("plan can include a swap leg before opening", () => {
   assert.ok(kinds.indexOf("swap") < kinds.indexOf("open"));
 });
 
-test("plan estimates notional from position value and builds a confirm phrase", () => {
+test("plan estimates notional and does not pre-commit a confirm phrase", () => {
   const plan = buildPlan(position, { low: 140, high: 160 }, prices);
   assert.ok(Math.abs(plan.estNotionalUsd - 3000) < 1e-6);
-  assert.equal(plan.confirmPhrase, "CONFIRM REBALANCE orca WhirlAbC");
+  // The phrase binds to the simulated tx and is issued at guard time, not here.
+  assert.ok(!("confirmPhrase" in plan));
+  assert.match(plan.confirmNote, /binds to the transaction/);
 });
 
 test("plan rejects an invalid target band", () => {

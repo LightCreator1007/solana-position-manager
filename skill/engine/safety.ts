@@ -1,6 +1,17 @@
 // Execution gate. throws on a hard violation; returns { ok: false } when simulated
 // only or awaiting confirmation; returns { ok: true } only when cleared to submit.
 
+import { createHash } from "node:crypto";
+
+// The phrase a human types to authorise a submission. It binds to the exact
+// transaction bytes that were simulated, so a transaction swapped after the
+// human read the plan no longer matches, and the phrase cannot be precomputed
+// before the transaction exists. The venue and ref keep it human-readable.
+export function txConfirmPhrase(venue: string, ref: string, txBase64: string): string {
+  const hash = createHash("sha256").update(txBase64).digest("hex").slice(0, 8);
+  return `CONFIRM REBALANCE ${venue} ${ref.slice(0, 8)} ${hash}`;
+}
+
 export interface SafetyCaps {
   maxSlippageBps: number;
   maxNotionalUsd: number;
@@ -19,8 +30,11 @@ export interface SafetyContext {
   dryRun: boolean;
   requireConfirm: boolean;
   killSwitch: boolean;
+  // The phrase the human typed. The expected phrase is derived from the
+  // simulated transaction, not supplied by the caller, so it cannot drift.
   typedPhrase: string | null;
-  expectedPhrase: string;
+  venue: string;
+  ref: string;
   dailyRealizedLossUsd: number;
   simulate: (txBase64: string) => Promise<{ err: unknown; logs?: string[] }>;
 }
@@ -52,8 +66,12 @@ export async function guard(
   if (sim.err) throw new Error(`safety: simulation failed: ${JSON.stringify(sim.err)}`);
 
   if (ctx.dryRun) return { ok: false, reason: "DRY_RUN active: simulated only, not submitting" };
-  if (ctx.requireConfirm && ctx.typedPhrase !== ctx.expectedPhrase) {
-    return { ok: false, reason: `awaiting typed confirmation: ${ctx.expectedPhrase}` };
+
+  // Derive the expected phrase from the bytes we just simulated. The submission
+  // clears only when the human typed the phrase for this exact transaction.
+  const expectedPhrase = txConfirmPhrase(ctx.venue, ctx.ref, metrics.txBase64);
+  if (ctx.requireConfirm && ctx.typedPhrase !== expectedPhrase) {
+    return { ok: false, reason: `awaiting typed confirmation: ${expectedPhrase}` };
   }
   return { ok: true };
 }

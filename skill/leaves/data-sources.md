@@ -14,7 +14,10 @@ const { usd, source } = await usdPrices([solMint, usdcMint], { birdeyeApiKey });
 ```
 
 Critical operations need a fresh price, under about 30 seconds old. Never price a liquidation check from
-cache.
+cache. The rule is enforced, not just advised:
+
+- `usdPrices` stamps `fetchedAtUnix`. Call `assertFresh(prices, 30)` before a liquidation or sizing decision; it throws `STALE_PRICE` when the map is too old.
+- A single source can be manipulated for a thin mint. On a critical path call `crossCheckPrices(mints, { birdeyeApiKey })` and then `assertPricesAgree(checks, maxBps)`; it throws `PRICE_DISAGREEMENT` when Jupiter and Birdeye diverge past tolerance. Prefer a confidence-aware oracle (Pyth, Switchboard) for the liquidation price itself.
 
 ## Positions
 
@@ -44,6 +47,15 @@ installed. It derives pooled amounts from on-chain liquidity at the current tick
 `orcaRowToRaw`, which reuses the concentrated-liquidity split. Those amounts are float-derived estimates,
 consistent with the engine treating USD figures as estimates. If a dependency or the RPC is missing, the
 call fails with a typed `EngineError` and a remediation, never with invented data.
+
+## Token-2022 traits
+
+Every `read(owner, { rpcUrl }, fetcher?)` annotates each leg with its token program, transfer fee, and
+transfer-hook state by reading the mint account (`engine/sources/mint.ts` `annotateMints`). This is what
+makes the `token-2022` escalation in `health.ts` fire on a real position; without it a hooked or
+fee-bearing mint looks like a plain SPL token. A mint whose account cannot be read throws a typed
+`EngineError` rather than passing through unverified, so a clean report means checked, not skipped. Pass
+`fetchImpl` to test the path offline. Annotation is skipped only when no `rpcUrl` is given.
 
 ## Program IDs
 

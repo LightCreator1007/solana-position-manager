@@ -1,11 +1,13 @@
 import type { Position } from "../model.ts";
 import { EngineError } from "../errors.ts";
 import { strOf, numOf, bigOf } from "./extract.ts";
+import { annotateMints } from "./mint.ts";
 
 const PKG = "@meteora-ag/dlmm";
 
 export interface ReadOpts {
   rpcUrl?: string;
+  fetchImpl?: typeof fetch;
 }
 
 export type RawFetcher = (owner: string, opts: ReadOpts) => Promise<Record<string, unknown>[]>;
@@ -73,5 +75,7 @@ async function liveFetch(): Promise<Record<string, unknown>[]> {
 
 export async function read(owner: string, opts: ReadOpts = {}, fetcher?: RawFetcher): Promise<Position[]> {
   const raws = await (fetcher ? fetcher(owner, opts) : liveFetch());
-  return raws.map(toPositionFromRaw);
+  const positions = raws.map(toPositionFromRaw);
+  if (opts.rpcUrl) await annotateMints(positions, opts.rpcUrl, opts.fetchImpl);
+  return positions;
 }

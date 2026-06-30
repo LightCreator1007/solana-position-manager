@@ -66,7 +66,7 @@ export async function getParsedTokenAccounts(
   const result = await rpc.call<TokenAccountsResult>("getTokenAccountsByOwner", [
     owner,
     { programId },
-    { encoding: "jsonParsed" },
+    { encoding: "jsonParsed", commitment: "confirmed" },
   ]);
   const out: ParsedTokenAccount[] = [];
   for (const entry of result.value ?? []) {
@@ -90,7 +90,7 @@ export function isPositionNft(account: ParsedTokenAccount): boolean {
 export async function getMintDecimals(rpc: RpcClient, mint: string): Promise<number> {
   const result = await rpc.call<{ value?: { data?: { parsed?: { info?: { decimals?: number } } } } }>(
     "getAccountInfo",
-    [mint, { encoding: "jsonParsed" }],
+    [mint, { encoding: "jsonParsed", commitment: "confirmed" }],
   );
   const decimals = result.value?.data?.parsed?.info?.decimals;
   if (typeof decimals !== "number") {

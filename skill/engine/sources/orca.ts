@@ -2,6 +2,7 @@ import type { Position } from "../model.ts";
 import { EngineError, classifyError } from "../errors.ts";
 import { clmmTokenSplit } from "../il.ts";
 import { strOf, numOf, bigOf } from "./extract.ts";
+import { annotateMints } from "./mint.ts";
 import {
   RpcClient,
   getMintDecimals,
@@ -202,5 +203,7 @@ async function liveFetch(owner: string, opts: ReadOpts): Promise<Record<string, 
 
 export async function read(owner: string, opts: ReadOpts = {}, fetcher?: RawFetcher): Promise<Position[]> {
   const raws = await (fetcher ? fetcher(owner, opts) : liveFetch(owner, opts));
-  return raws.map(toPositionFromRaw);
+  const positions = raws.map(toPositionFromRaw);
+  if (opts.rpcUrl) await annotateMints(positions, opts.rpcUrl, opts.fetchImpl);
+  return positions;
 }

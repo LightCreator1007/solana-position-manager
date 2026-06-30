@@ -15,6 +15,10 @@ export interface DecideInput {
   taxRateBps?: number;
   holdingDays?: number;
   safetyMarginUsd?: number;
+  // How much of the raw width-ratio fee uplift a tighter band actually captures,
+  // in (0, 1]. 1 is the old linear assumption; the default is conservative so the
+  // decision does not over-credit concentration and over-recommend rebalancing.
+  concentrationEfficiency?: number;
 }
 
 export interface DecideInputsResolved {
@@ -31,6 +35,7 @@ export interface DecideInputsResolved {
   realizedGainUsd: number;
   taxRateBps: number;
   safetyMarginUsd: number;
+  concentrationEfficiency: number;
 }
 
 export interface Decision {
@@ -66,7 +71,16 @@ function halfWidthOf(band: PriceBand): number {
   return (band.high - band.low) / (band.high + band.low);
 }
 
-function expectedIlUsd(
+// Five-node Gauss-Hermite quadrature for the standard normal, rescaled from the
+// physicists' nodes (weight e^{-x^2}) to N(0,1). Integrates a function of the
+// terminal log-return against its driftless lognormal distribution.
+const GH_NODES = [0, 1.3556262, -1.3556262, 2.8569700, -2.8569700];
+const GH_WEIGHTS = [0.5333333, 0.2220759, 0.2220759, 0.0112574, 0.0112574];
+
+// Expected impermanent loss in USD over the horizon. IL is convex and saturates
+// once price leaves the band, so a single +/-1 sigma pair understates it; the
+// quadrature samples the body and the tails of the terminal-price distribution.
+export function expectedIlUsd(
   band: PriceBand,
   price: number,
   volAnnual: number,
@@ -75,11 +89,13 @@ function expectedIlUsd(
 ): number {
   const sigma = volAnnual * Math.sqrt(horizonDays / 365);
   if (!(sigma > 0)) return 0;
-  const up = price * Math.exp(sigma);
-  const down = price * Math.exp(-sigma);
-  const ilUp = Math.abs(ilClmm({ entryPrice: price, exitPrice: up, band, depositValueInB: principalUsd }).ilFraction);
-  const ilDown = Math.abs(ilClmm({ entryPrice: price, exitPrice: down, band, depositValueInB: principalUsd }).ilFraction);
-  return principalUsd * ((ilUp + ilDown) / 2);
+  let expectedFraction = 0;
+  for (let i = 0; i < GH_NODES.length; i++) {
+    const exitPrice = price * Math.exp(sigma * GH_NODES[i]);
+    const il = Math.abs(ilClmm({ entryPrice: price, exitPrice, band, depositValueInB: principalUsd }).ilFraction);
+    expectedFraction += GH_WEIGHTS[i] * il;
+  }
+  return principalUsd * expectedFraction;
 }
 
 function resolve(input: DecideInput): DecideInputsResolved {
@@ -98,13 +114,21 @@ function resolve(input: DecideInput): DecideInputsResolved {
     realizedGainUsd: input.realizedGainUsd ?? 0,
     taxRateBps: input.taxRateBps ?? 0,
     safetyMarginUsd: input.safetyMarginUsd ?? 0,
+    concentrationEfficiency: clamp(input.concentrationEfficiency ?? 0.5, 0, 1),
   };
+}
+
+// Raw width ratio says a band half as wide earns twice the fees. Real capture is
+// sublinear, so blend the raw multiplier toward 1 by the efficiency factor.
+function effectiveConcentration(r: DecideInputsResolved): number {
+  const raw = clamp(halfWidthOf(r.currentBand) / r.candidateWidth, 0.1, 10);
+  return 1 + (raw - 1) * r.concentrationEfficiency;
 }
 
 function evAtHorizon(r: DecideInputsResolved, newBand: PriceBand, horizonDays: number): number {
   const fracCurrent = 1 - outOfRangeProbability(r.currentPrice, r.currentBand, r.volAnnual, horizonDays);
   const fracNew = 1 - outOfRangeProbability(r.currentPrice, newBand, r.volAnnual, horizonDays);
-  const concentration = clamp(halfWidthOf(r.currentBand) / r.candidateWidth, 0.1, 10);
+  const concentration = effectiveConcentration(r);
   const stayRate = r.feeVelocityUsdPerDay;
   const rebalanceRate = r.feeVelocityUsdPerDay * concentration;
 
@@ -132,7 +156,7 @@ export function decideRebalance(input: DecideInput): Decision {
 
   const fracCurrent = 1 - outOfRangeProbability(r.currentPrice, r.currentBand, r.volAnnual, r.horizonDays);
   const fracNew = 1 - outOfRangeProbability(r.currentPrice, recommendedBand, r.volAnnual, r.horizonDays);
-  const concentration = clamp(halfWidthOf(r.currentBand) / r.candidateWidth, 0.1, 10);
+  const concentration = effectiveConcentration(r);
 
   const projectedFeesStayUsd = r.feeVelocityUsdPerDay * r.horizonDays * fracCurrent;
   const projectedFeesRebalanceUsd = r.feeVelocityUsdPerDay * concentration * r.horizonDays * fracNew;

@@ -77,6 +77,15 @@ test("reports worst-case edge IL and a break-even fee APR for the recommended ba
   assert.ok(Number.isFinite(d.breakEvenFeeAprPct));
 });
 
+test("lower concentration efficiency makes a rebalance less eager", () => {
+  // A tighter band does not capture fees in linear proportion to how much
+  // narrower it is. Dampening the uplift removes the default bias toward acting.
+  const eager = decideRebalance({ ...outOfRange, taxRateBps: 0, concentrationEfficiency: 1 });
+  const damped = decideRebalance({ ...outOfRange, taxRateBps: 0, concentrationEfficiency: 0.3 });
+  assert.ok(damped.projectedFeesRebalanceUsd < eager.projectedFeesRebalanceUsd);
+  assert.ok(damped.evDeltaUsd < eager.evDeltaUsd);
+});
+
 test("a custom safety margin suppresses marginal rebalances", () => {
   const eager = decideRebalance({ ...outOfRange, taxRateBps: 0 });
   const strict = decideRebalance({ ...outOfRange, taxRateBps: 0, safetyMarginUsd: eager.evDeltaUsd + 1 });

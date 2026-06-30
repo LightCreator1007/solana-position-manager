@@ -19,7 +19,10 @@ export interface RebalancePlan {
   steps: PlanStep[];
   estNotionalUsd: number;
   estPositionUsd: number;
-  confirmPhrase: string;
+  // The confirm phrase is not fixed here. It is issued by safety.ts
+  // `txConfirmPhrase` once the transaction is built and simulated, so it binds to
+  // the exact bytes. Building it before the tx exists would let a swapped tx pass.
+  confirmNote: string;
 }
 
 export function buildPlan(
@@ -56,6 +59,6 @@ export function buildPlan(
     steps,
     estNotionalUsd: value,
     estPositionUsd: value,
-    confirmPhrase: `CONFIRM REBALANCE ${venue} ${ref.slice(0, 8)}`,
+    confirmNote: "confirm phrase is issued after simulation and binds to the transaction; see safety.ts txConfirmPhrase",
   };
 }

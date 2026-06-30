@@ -9,6 +9,8 @@ export type EngineErrorCode =
   | "NOT_IMPLEMENTED"
   | "LEDGER_IO"
   | "PRICE_UNAVAILABLE"
+  | "STALE_PRICE"
+  | "PRICE_DISAGREEMENT"
   | "UNKNOWN";
 
 const REMEDIATION: Record<EngineErrorCode, string> = {
@@ -18,6 +20,8 @@ const REMEDIATION: Record<EngineErrorCode, string> = {
   NOT_IMPLEMENTED: "Pass a fetcher to read(), or wire the live path in leaves/data-sources.md.",
   LEDGER_IO: "Check the ledger path and write permissions under LP_DESK_HOME.",
   PRICE_UNAVAILABLE: "Provide a price source or a Birdeye key. Unresolved mints are left stale at zero.",
+  STALE_PRICE: "Refetch prices before a liquidation or sizing decision. The cached price is older than the limit.",
+  PRICE_DISAGREEMENT: "Two price sources disagree beyond tolerance; the mint may be thinly traded or manipulated. Verify pool depth or use a confidence-aware oracle before sizing.",
   UNKNOWN: "Report the code and message. Do not retry blindly or fill the gap with invented data.",
 };
 
