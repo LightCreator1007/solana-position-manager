@@ -145,6 +145,27 @@ export function buildLots(events: LotEvent[], method: TaxMethod): LotResult {
   return { realizedGainUsd, disposals, openLots: remaining, notes };
 }
 
+export interface LpClose {
+  depositedUsd: number; // USD value of the tokens deposited: the position's cost basis
+  withdrawnUsd: number; // USD value of the tokens withdrawn at close
+  feesUsd?: number; // fees collected over the position's life, added to proceeds
+}
+
+// LP-position-as-a-unit cost basis. Impermanent loss shifts the token ratio, so
+// the amounts withdrawn differ from those deposited and per-token lot matching
+// surfaces spurious missing-basis flags. Treating the whole position as one asset
+// (proceeds minus basis, both in USD) is the clean method for an LP open/close.
+// Taxability of an LP add/remove is unsettled; confirm treatment with a CPA.
+export function lpUnitRealizedGain(close: LpClose): {
+  basisUsd: number;
+  proceedsUsd: number;
+  gainUsd: number;
+} {
+  const basisUsd = close.depositedUsd;
+  const proceedsUsd = close.withdrawnUsd + (close.feesUsd ?? 0);
+  return { basisUsd, proceedsUsd, gainUsd: proceedsUsd - basisUsd };
+}
+
 export function realizedGainIfClosed(
   legs: { mint: string; amountUi: number; priceUsd: number }[],
   openLots: OpenLot[],

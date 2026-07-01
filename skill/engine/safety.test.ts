@@ -72,6 +72,11 @@ test("txConfirmPhrase is deterministic and changes with the transaction", () => 
   assert.notEqual(txConfirmPhrase("orca", "Whirl123", "AA=="), txConfirmPhrase("orca", "Whirl123", "Zm9v"));
 });
 
+test("the transaction hash in the phrase is 16 hex chars (64-bit binding)", () => {
+  const hash = txConfirmPhrase("orca", "Whirl123", "AA==").split(" ").pop() ?? "";
+  assert.match(hash, /^[0-9a-f]{16}$/);
+});
+
 test("correct tx-bound phrase with live mode clears submission", async () => {
   const r = await guard(metrics, caps, ctx());
   assert.deepEqual(r, { ok: true });

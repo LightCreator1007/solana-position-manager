@@ -12,6 +12,9 @@ export interface PriceMap {
 export interface PriceOpts {
   fetchImpl?: typeof fetch;
   birdeyeApiKey?: string;
+  // Optional Jupiter key. The public price endpoint is rate limited; a key lifts
+  // the limit and avoids 429s that would otherwise degrade a mint to stale zero.
+  jupiterApiKey?: string;
   // Injectable clock for tests; defaults to wall-clock unix seconds.
   nowUnix?: number;
 }
@@ -36,9 +39,11 @@ const BIRDEYE_URL = "https://public-api.birdeye.so/defi/price";
 export async function fetchJupiterPrices(
   mints: string[],
   fetchImpl: typeof fetch,
+  apiKey?: string,
 ): Promise<Record<string, number>> {
   if (mints.length === 0) return {};
-  const res = await fetchImpl(`${JUPITER_URL}?ids=${mints.join(",")}`);
+  const init = apiKey ? { headers: { "x-api-key": apiKey } } : undefined;
+  const res = await fetchImpl(`${JUPITER_URL}?ids=${mints.join(",")}`, init);
   if (!res.ok) {
     throw new EngineError("RPC_FAILED", `jupiter price http ${res.status}`, { endpoint: safeEndpoint(JUPITER_URL) });
   }
@@ -95,7 +100,7 @@ export async function crossCheckPrices(mints: string[], opts: PriceOpts = {}): P
     throw new EngineError("PRICE_UNAVAILABLE", "crossCheckPrices needs a second source (Birdeye key)");
   }
   const [jup, be] = await Promise.all([
-    fetchJupiterPrices(mints, fetchImpl).catch(() => ({}) as Record<string, number>),
+    fetchJupiterPrices(mints, fetchImpl, opts.jupiterApiKey).catch(() => ({}) as Record<string, number>),
     fetchBirdeyePrices(mints, opts.birdeyeApiKey, fetchImpl).catch(() => ({}) as Record<string, number>),
   ]);
   const checks: PriceCheck[] = [];
@@ -129,7 +134,7 @@ export async function usdPrices(mints: string[], opts: PriceOpts = {}): Promise<
   const remaining = new Set(mints);
 
   try {
-    const jup = await fetchJupiterPrices([...remaining], fetchImpl);
+    const jup = await fetchJupiterPrices([...remaining], fetchImpl, opts.jupiterApiKey);
     for (const [mint, price] of Object.entries(jup)) {
       usd[mint] = price;
       source[mint] = "jupiter";

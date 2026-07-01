@@ -11,6 +11,7 @@ interface TokenLegDto {
   tokenProgram?: TokenLeg["tokenProgram"];
   transferFeeBps?: number;
   hasTransferHook?: boolean;
+  hasScaledAmount?: boolean;
 }
 
 interface PositionDto {
@@ -41,6 +42,7 @@ const legToDto = (leg: TokenLeg): TokenLegDto => {
   if (leg.tokenProgram !== undefined) dto.tokenProgram = leg.tokenProgram;
   if (leg.transferFeeBps !== undefined) dto.transferFeeBps = leg.transferFeeBps;
   if (leg.hasTransferHook !== undefined) dto.hasTransferHook = leg.hasTransferHook;
+  if (leg.hasScaledAmount !== undefined) dto.hasScaledAmount = leg.hasScaledAmount;
   return dto;
 };
 
@@ -49,6 +51,7 @@ const legFromDto = (dto: TokenLegDto): TokenLeg => {
   if (dto.tokenProgram !== undefined) leg.tokenProgram = dto.tokenProgram;
   if (dto.transferFeeBps !== undefined) leg.transferFeeBps = dto.transferFeeBps;
   if (dto.hasTransferHook !== undefined) leg.hasTransferHook = dto.hasTransferHook;
+  if (dto.hasScaledAmount !== undefined) leg.hasScaledAmount = dto.hasScaledAmount;
   return leg;
 };
 
@@ -116,6 +119,9 @@ export function deserializeSnapshot(line: string): Snapshot {
 
 export interface LedgerOpts {
   home?: string;
+  // Skip snapshots older than this (unix seconds) without fully deserializing
+  // them, so a long history is not parsed in full to read a recent window.
+  sinceUnix?: number;
 }
 
 export function ledgerHome(opts: LedgerOpts = {}): string {
@@ -155,11 +161,13 @@ export function recordRealizedLoss(
   }
 }
 
-// Sum the realized losses recorded in the current UTC day. Pass this into the
-// safety guard's `dailyRealizedLossUsd` so the cap holds across runs.
+// Sum the realized losses recorded in the trailing 24 hours. A rolling window,
+// not a calendar boundary, so the cap cannot be doubled by losing up to it on
+// each side of a midnight reset, and it does not depend on the user's timezone.
+// Pass this into the safety guard's `dailyRealizedLossUsd` so the cap holds across runs.
 export function dailyRealizedLossUsd(wallet: string, opts: LedgerOpts = {}, nowUnix?: number): number {
   const now = nowUnix ?? Math.floor(Date.now() / 1000);
-  const dayStart = Math.floor(now / DAY_SECONDS) * DAY_SECONDS;
+  const cutoff = now - DAY_SECONDS;
   const path = lossLedgerPath(wallet, opts);
   if (!existsSync(path)) return 0;
   let lines: string[];
@@ -176,7 +184,7 @@ export function dailyRealizedLossUsd(wallet: string, opts: LedgerOpts = {}, nowU
     if (!trimmed) continue;
     try {
       const entry = JSON.parse(trimmed) as { t: number; lossUsd: number };
-      if (entry.t >= dayStart && Number.isFinite(entry.lossUsd)) total += entry.lossUsd;
+      if (entry.t >= cutoff && Number.isFinite(entry.lossUsd)) total += entry.lossUsd;
     } catch {
       process.stderr.write(`ledger: skipping malformed loss line in ${path}\n`);
     }
@@ -212,6 +220,12 @@ export function readSnapshots(wallet: string, opts: LedgerOpts = {}): Snapshot[]
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+    // Cheap pre-filter: read the timestamp off the raw line and skip old
+    // snapshots before paying to deserialize their positions.
+    if (opts.sinceUnix !== undefined) {
+      const m = trimmed.match(/"takenAtUnix":\s*(\d+)/);
+      if (m && Number(m[1]) < opts.sinceUnix) continue;
+    }
     try {
       out.push(deserializeSnapshot(trimmed));
     } catch {

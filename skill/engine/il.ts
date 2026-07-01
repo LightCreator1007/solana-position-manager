@@ -13,6 +13,7 @@ export interface PriceBand {
 }
 
 const sqrt = Math.sqrt;
+const SECONDS_PER_YEAR = 365 * 24 * 3600;
 
 export function bandFromWidth(center: number, width: number): PriceBand {
   if (!(center > 0)) throw new Error("bandFromWidth: center must be > 0");
@@ -95,47 +96,48 @@ export function breakEvenFeeApr(ilFraction: number, horizonYears: number): numbe
   return Math.max(0, -ilFraction) / horizonYears;
 }
 
+// Annualized realized volatility. Uses realized variance normalized by each
+// interval's own elapsed time, so an irregularly spaced series (snapshots taken
+// whenever the agent runs) is handled correctly: a return over a long gap
+// contributes less per-unit variance than the same return over a short gap.
+// sigma^2_annual = (sum of squared log returns / total elapsed seconds) * seconds/year.
 export function realizedVolAnnualized(series: PricePoint[]): number {
   if (series.length < 3) return 0;
-  const returns: number[] = [];
+  let sumSq = 0;
+  let sumDt = 0;
   for (let i = 1; i < series.length; i++) {
     const prev = series[i - 1].price;
     const curr = series[i].price;
-    if (prev > 0 && curr > 0) returns.push(Math.log(curr / prev));
+    const dt = series[i].t - series[i - 1].t;
+    if (!(prev > 0 && curr > 0 && dt > 0)) continue;
+    const r = Math.log(curr / prev);
+    sumSq += r * r;
+    sumDt += dt;
   }
-  if (returns.length < 2) return 0;
-  const mean = returns.reduce((acc, r) => acc + r, 0) / returns.length;
-  const variance = returns.reduce((acc, r) => acc + (r - mean) ** 2, 0) / (returns.length - 1);
-  const stepStd = sqrt(variance);
-  const spanSec = series[series.length - 1].t - series[0].t;
-  const stepSec = spanSec / (series.length - 1);
-  if (!(stepSec > 0)) return 0;
-  const stepsPerYear = (365 * 24 * 3600) / stepSec;
-  return stepStd * sqrt(stepsPerYear);
+  if (!(sumDt > 0)) return 0;
+  return sqrt((sumSq / sumDt) * SECONDS_PER_YEAR);
 }
 
-// EWMA volatility (RiskMetrics) annualized. Weights recent returns more than a
-// flat realized vol, so a volatility-sized band reacts faster to a regime change.
+// EWMA volatility (RiskMetrics) annualized, spacing-aware. Weights recent
+// per-second variance more than a flat realized vol, so a volatility-sized band
+// reacts faster to a regime change. Each step's contribution is r^2 / dt, so an
+// uneven gap does not distort the recency weighting.
 export function ewmaVolAnnualized(series: PricePoint[], lambda = 0.94): number {
   if (series.length < 3) return 0;
   if (!(lambda > 0 && lambda < 1)) throw new Error("ewmaVolAnnualized: lambda must be in (0, 1)");
-  let variance = 0;
+  let variancePerSec = 0;
   let seen = 0;
   for (let i = 1; i < series.length; i++) {
     const prev = series[i - 1].price;
     const curr = series[i].price;
-    if (!(prev > 0 && curr > 0)) continue;
-    const r = Math.log(curr / prev);
-    variance = seen === 0 ? r * r : lambda * variance + (1 - lambda) * r * r;
+    const dt = series[i].t - series[i - 1].t;
+    if (!(prev > 0 && curr > 0 && dt > 0)) continue;
+    const v = (Math.log(curr / prev) ** 2) / dt;
+    variancePerSec = seen === 0 ? v : lambda * variancePerSec + (1 - lambda) * v;
     seen++;
   }
   if (seen < 2) return 0;
-  const stepStd = sqrt(variance);
-  const spanSec = series[series.length - 1].t - series[0].t;
-  const stepSec = spanSec / (series.length - 1);
-  if (!(stepSec > 0)) return 0;
-  const stepsPerYear = (365 * 24 * 3600) / stepSec;
-  return stepStd * sqrt(stepsPerYear);
+  return sqrt(variancePerSec * SECONDS_PER_YEAR);
 }
 
 export function stdNormCdf(x: number): number {

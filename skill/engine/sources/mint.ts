@@ -12,6 +12,9 @@ export interface MintTraits {
   tokenProgram: TokenProgram;
   transferFeeBps: number;
   hasTransferHook: boolean;
+  // interest-bearing or scaled-ui-amount: the decoded raw amount is not the true
+  // balance, so a USD figure from raw/decimals is wrong until the multiplier is applied.
+  hasScaledAmount: boolean;
 }
 
 // The system program id is the "unset" value for an optional program pointer.
@@ -38,6 +41,7 @@ export function parseMintTraits(value: ParsedMintValue): MintTraits {
 
   let transferFeeBps = 0;
   let hasTransferHook = false;
+  let hasScaledAmount = false;
   for (const ext of extensions) {
     if (ext.extension === "transferFeeConfig") {
       const state = ext.state as { newerTransferFee?: { transferFeeBasisPoints?: number | string } } | undefined;
@@ -50,9 +54,11 @@ export function parseMintTraits(value: ParsedMintValue): MintTraits {
       if (typeof programId === "string" && programId.length > 0 && programId !== DEFAULT_PROGRAM_ID) {
         hasTransferHook = true;
       }
+    } else if (ext.extension === "interestBearingConfig" || ext.extension === "scaledUiAmountConfig") {
+      hasScaledAmount = true;
     }
   }
-  return { tokenProgram, transferFeeBps, hasTransferHook };
+  return { tokenProgram, transferFeeBps, hasTransferHook, hasScaledAmount };
 }
 
 export async function getMintTraits(rpc: RpcClient, mint: string): Promise<MintTraits> {
@@ -77,6 +83,7 @@ export function withTokenTraits(positions: Position[], traits: Record<string, Mi
       leg.tokenProgram = t.tokenProgram;
       if (t.transferFeeBps > 0) leg.transferFeeBps = t.transferFeeBps;
       if (t.hasTransferHook) leg.hasTransferHook = true;
+      if (t.hasScaledAmount) leg.hasScaledAmount = true;
     }
   }
   return positions;

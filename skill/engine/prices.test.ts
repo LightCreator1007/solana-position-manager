@@ -44,6 +44,17 @@ test("unresolved mints are marked stale with zero", async () => {
   assert.equal(result.usd[SOL], 0);
 });
 
+test("a Jupiter API key is sent as a header to lift the public rate limit", async () => {
+  let sentKey: string | undefined;
+  const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url.includes("jup")) sentKey = (init?.headers as Record<string, string> | undefined)?.["x-api-key"];
+    return { ok: true, status: 200, json: async () => ({ data: { [SOL]: { price: 150 } } }) } as Response;
+  }) as typeof fetch;
+  await usdPrices([SOL], { fetchImpl, jupiterApiKey: "jk-123" });
+  assert.equal(sentKey, "jk-123");
+});
+
 test("usdPrices stamps the fetch time so freshness can be checked", async () => {
   const fetchImpl = fakeFetch(() => ({ ok: true, status: 200, body: { data: { [SOL]: { price: 150 } } } }));
   const result = await usdPrices([SOL], { fetchImpl, nowUnix: 1_000_000 });

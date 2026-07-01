@@ -36,6 +36,12 @@ test("plan estimates notional and does not pre-commit a confirm phrase", () => {
   assert.match(plan.confirmNote, /binds to the transaction/);
 });
 
+test("the open step carries the target band as machine-readable params for the executor", () => {
+  const plan = buildPlan(position, { low: 140, high: 160 }, prices);
+  const open = plan.steps.find((s) => s.kind === "open");
+  assert.deepEqual(open?.params, { low: 140, high: 160 });
+});
+
 test("plan rejects an invalid target band", () => {
   assert.throws(() => buildPlan(position, { low: 160, high: 140 }, prices));
   assert.throws(() => buildPlan(position, { low: 0, high: 160 }, prices));

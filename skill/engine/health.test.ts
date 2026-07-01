@@ -87,6 +87,16 @@ test("a Token-2022 leg raises a verify-before-sizing flag", () => {
   assert.ok(escalations(snap).some((a) => a.code === "token-2022"));
 });
 
+test("an interest-bearing / scaled-amount leg raises a valuation flag", () => {
+  const snap = orcaSnapshot({
+    legs: {
+      a: { mint: SOL, decimals: 9, raw: 1n, hasScaledAmount: true },
+      b: { mint: USDC, decimals: 6, raw: 1n },
+    },
+  });
+  assert.ok(escalations(snap).some((a) => a.code === "scaled-amount"));
+});
+
 test("a locked position raises a high alert", () => {
   assert.ok(escalations(orcaSnapshot({ locked: true })).some((a) => a.code === "locked" && a.severity === "high"));
 });

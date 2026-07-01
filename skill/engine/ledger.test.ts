@@ -52,6 +52,22 @@ test("append and read returns snapshots sorted by time with bigints intact", () 
   }
 });
 
+test("readSnapshots tails from sinceUnix and skips older history", () => {
+  const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
+  const wallet = "WalletTest11111111111111111111111111111111";
+  try {
+    appendSnapshot(demoSnap(1000, wallet), { home });
+    appendSnapshot(demoSnap(2000, wallet), { home });
+    appendSnapshot(demoSnap(3000, wallet), { home });
+    const recent = readSnapshots(wallet, { home, sinceUnix: 2000 });
+    assert.equal(recent.length, 2);
+    assert.equal(recent[0].takenAtUnix, 2000);
+    assert.equal(recent[1].takenAtUnix, 3000);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test("malformed lines are skipped, not fatal", () => {
   const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
   try {
@@ -89,7 +105,7 @@ test("daily realized loss sums today's entries and survives a restart", () => {
   }
 });
 
-test("a loss from a previous day does not count against today's cap", () => {
+test("a loss from more than 24h ago does not count against the cap", () => {
   const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
   const wallet = "WalletTest11111111111111111111111111111111";
   const now = 1_700_000_000;
@@ -97,6 +113,19 @@ test("a loss from a previous day does not count against today's cap", () => {
     recordRealizedLoss(wallet, 500, { home }, now - 86_400 * 2);
     recordRealizedLoss(wallet, 50, { home }, now);
     assert.equal(dailyRealizedLossUsd(wallet, { home }, now), 50);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("the loss window is a rolling 24h, not a calendar boundary", () => {
+  const home = mkdtempSync(join(tmpdir(), "lp-desk-"));
+  const wallet = "WalletTest11111111111111111111111111111111";
+  const now = 1_700_000_000; // ~22h into its UTC day; a calendar reset would drop the 23h-old loss
+  try {
+    recordRealizedLoss(wallet, 100, { home }, now - 23 * 3600); // still inside the trailing 24h
+    recordRealizedLoss(wallet, 40, { home }, now - 25 * 3600); // outside it
+    assert.equal(dailyRealizedLossUsd(wallet, { home }, now), 100);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

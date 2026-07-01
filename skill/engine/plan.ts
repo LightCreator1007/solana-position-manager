@@ -9,6 +9,9 @@ export interface PlanStep {
   venue: string;
   ref: string;
   summary: string;
+  // Machine-readable values for the executor (solana-dev), so it builds the exact
+  // transaction the engine modelled rather than re-deriving it from the summary.
+  params?: Record<string, unknown>;
 }
 
 export interface RebalancePlan {
@@ -47,7 +50,13 @@ export function buildPlan(
     steps.push({ kind: "swap", venue, ref, summary: "swap to the target deposit ratio" });
   }
   steps.push(
-    { kind: "open", venue, ref, summary: `open a position over [${toBand.low.toFixed(4)}, ${toBand.high.toFixed(4)}]` },
+    {
+      kind: "open",
+      venue,
+      ref,
+      summary: `open a position over [${toBand.low.toFixed(4)}, ${toBand.high.toFixed(4)}]`,
+      params: { low: toBand.low, high: toBand.high },
+    },
     { kind: "deposit", venue, ref, summary: "deposit liquidity into the new range" },
   );
 

@@ -24,6 +24,11 @@ backbone that makes P&L measured rather than guessed.
   disposals with holding period and short or long term, the remaining open lots, and notes.
 - `realizedGainIfClosed(legs, openLots, method, atUnix)` estimates the gain if you closed a position now.
   It returns `ambiguous: true`, because whether providing or removing liquidity is a disposal is unsettled.
+- `lpUnitRealizedGain({ depositedUsd, withdrawnUsd, feesUsd })` is the preferred method for an LP
+  open/close: impermanent loss shifts the token ratio, so the amounts withdrawn differ from those
+  deposited and per-token lot matching surfaces spurious missing-basis flags. Treat the whole position as
+  one asset — proceeds (withdrawn value plus fees) minus basis (deposited value). Use per-token lots for
+  spot tokens, `lpUnitRealizedGain` for the position itself.
 
 Per-wallet cost-basis tracking is the current standard for US filers. Method choice changes the realised
 gain, so state which method you used. Feed `realizedGainIfClosed` into the rebalance decision to capture

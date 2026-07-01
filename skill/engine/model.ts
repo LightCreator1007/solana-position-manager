@@ -15,6 +15,10 @@ export interface TokenLeg {
   // block or gate a move; a transfer fee shaves the amount that arrives.
   transferFeeBps?: number;
   hasTransferHook?: boolean;
+  // Token-2022 interest-bearing or scaled-ui-amount: the raw base-unit amount
+  // understates the real balance, which must be scaled by an accrued multiplier
+  // before valuing. Flagged so USD figures are not taken at face value.
+  hasScaledAmount?: boolean;
 }
 
 // Bounds are venue-tagged. CLMM ticks are half-open [lower, upper);

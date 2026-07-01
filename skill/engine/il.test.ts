@@ -116,6 +116,29 @@ test("realizedVolAnnualized is zero for a flat series and positive for a moving 
   assert.ok(realizedVolAnnualized(moving) > 0);
 });
 
+test("realized vol counts a steady trend as volatility (realized variance, no mean subtraction)", () => {
+  // Equal successive log returns are a pure trend. A mean-subtracting sample
+  // variance reports zero here; realized variance (sum of squared returns over
+  // total elapsed time) correctly reports positive volatility.
+  const trend: PricePoint[] = [
+    { t: 0, price: 100 },
+    { t: 86400, price: 110 },
+    { t: 2 * 86400, price: 121 },
+  ];
+  assert.ok(realizedVolAnnualized(trend) > 0);
+  assert.ok(ewmaVolAnnualized(trend) > 0);
+});
+
+test("realized vol is spacing-aware: the same move over more time is less volatile", () => {
+  const fast: PricePoint[] = [
+    { t: 0, price: 100 }, { t: 86400, price: 100 }, { t: 2 * 86400, price: 130 },
+  ];
+  const slow: PricePoint[] = [
+    { t: 0, price: 100 }, { t: 86400, price: 100 }, { t: 8 * 86400, price: 130 },
+  ];
+  assert.ok(realizedVolAnnualized(fast) > realizedVolAnnualized(slow));
+});
+
 test("stdNormCdf is 0.5 at zero and monotone", () => {
   assert.ok(close(stdNormCdf(0), 0.5, 1e-6));
   assert.ok(stdNormCdf(-1) < 0.5);

@@ -43,4 +43,4 @@ only the exact transaction the guard cleared; rebuilding it after clearance void
 ## Operational notes
 
 - The kill switch is checked first and halts every path. Read it fresh from a persisted source each call, not once at startup.
-- Track realised daily loss across runs. An in-memory counter that resets on restart would defeat the cap. Use the ledger-backed daily-loss tracker (`engine/ledger.ts`).
+- Track realised daily loss across runs. An in-memory counter that resets on restart would defeat the cap. Use the ledger-backed daily-loss tracker (`engine/ledger.ts` `dailyRealizedLossUsd`); it sums a trailing 24h rolling window, so the cap cannot be doubled across a midnight reset and does not depend on timezone.

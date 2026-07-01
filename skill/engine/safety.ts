@@ -8,7 +8,9 @@ import { createHash } from "node:crypto";
 // human read the plan no longer matches, and the phrase cannot be precomputed
 // before the transaction exists. The venue and ref keep it human-readable.
 export function txConfirmPhrase(venue: string, ref: string, txBase64: string): string {
-  const hash = createHash("sha256").update(txBase64).digest("hex").slice(0, 8);
+  // 16 hex chars (64 bits) binds the phrase to the transaction with room to
+  // spare against accidental collision, while staying short enough to copy.
+  const hash = createHash("sha256").update(txBase64).digest("hex").slice(0, 16);
   return `CONFIRM REBALANCE ${venue} ${ref.slice(0, 8)} ${hash}`;
 }
 

@@ -52,6 +52,26 @@ test("parseMintTraits extracts a transfer fee and a transfer hook from extension
   assert.equal(hook.transferFeeBps, 0);
 });
 
+test("parseMintTraits flags an interest-bearing or scaled-amount mint", () => {
+  const interest = parseMintTraits({
+    owner: TOKEN_2022_PROGRAM_ID,
+    data: { parsed: { info: { extensions: [
+      { extension: "interestBearingConfig", state: { currentRate: 500 } },
+    ] } } },
+  });
+  assert.equal(interest.hasScaledAmount, true);
+
+  const scaled = parseMintTraits({
+    owner: TOKEN_2022_PROGRAM_ID,
+    data: { parsed: { info: { extensions: [
+      { extension: "scaledUiAmountConfig", state: { multiplier: 1.05 } },
+    ] } } },
+  });
+  assert.equal(scaled.hasScaledAmount, true);
+
+  assert.equal(parseMintTraits(splMint).hasScaledAmount, false);
+});
+
 test("a transfer hook set to the default program id is not an active hook", () => {
   const noHook = parseMintTraits({
     owner: TOKEN_2022_PROGRAM_ID,
@@ -76,8 +96,8 @@ test("withTokenTraits stamps the program and fee onto the matching legs", () => 
     unclaimed: { a: 0n, b: 0n },
   }];
   withTokenTraits(positions, {
-    [HOOK]: { tokenProgram: "token-2022", transferFeeBps: 0, hasTransferHook: true },
-    [USDC]: { tokenProgram: "spl-token", transferFeeBps: 0, hasTransferHook: false },
+    [HOOK]: { tokenProgram: "token-2022", transferFeeBps: 0, hasTransferHook: true, hasScaledAmount: false },
+    [USDC]: { tokenProgram: "spl-token", transferFeeBps: 0, hasTransferHook: false, hasScaledAmount: false },
   });
   assert.equal(positions[0].legs.a.tokenProgram, "token-2022");
   assert.equal(positions[0].legs.a.hasTransferHook, true);

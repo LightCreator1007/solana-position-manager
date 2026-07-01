@@ -39,6 +39,14 @@ function tokenFlags(p: Position): Escalation[] {
       ref: p.ref,
     });
   }
+  if (legs.some((l) => l!.hasScaledAmount)) {
+    out.push({
+      code: "scaled-amount",
+      severity: "medium",
+      message: `position on ${p.venue} holds an interest-bearing or scaled-amount mint; the raw amount understates value, apply the accrued multiplier before valuing`,
+      ref: p.ref,
+    });
+  }
   return out;
 }
 
