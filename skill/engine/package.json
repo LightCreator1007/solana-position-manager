@@ -19,9 +19,9 @@
   "optionalDependencies": {
     "@solana/kit": "^2.0.0",
     "@orca-so/whirlpools": "^1.0.0",
-    "@raydium-io/raydium-sdk-v2": "^0.2.0",
+    "@raydium-io/raydium-sdk-v2": "^0.2.59-alpha",
     "@meteora-ag/dlmm": "^1.0.0",
-    "@kamino-finance/kliquidity-sdk": "^13.0.0"
+    "@kamino-finance/kliquidity-sdk": "^14.0.0"
   },
   "license": "MIT"
 }
