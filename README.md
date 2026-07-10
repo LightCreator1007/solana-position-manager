@@ -141,4 +141,4 @@ extract fields defensively but assume current key names.
 
 ## License
 
-MIT. See LICENSE, retained from the upstream seed.
+MIT. See LICENSE.

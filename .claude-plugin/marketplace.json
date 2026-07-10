@@ -3,9 +3,6 @@
   "owner": {
     "name": "LightCreator1007"
   },
-  "metadata": {
-    "upstream": "solanabr/position-manager-skill (seed; LICENSE retained)"
-  },
   "plugins": [
     {
       "name": "position-manager-skill",
