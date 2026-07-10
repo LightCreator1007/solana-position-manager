@@ -13,6 +13,7 @@ import {
 } from "./rpc.ts";
 
 const PKG = "@orca-so/whirlpools";
+const CLIENT_PKG = "@orca-so/whirlpools-client";
 const KIT_PKG = "@solana/kit";
 
 export interface ReadOpts {
@@ -142,12 +143,22 @@ async function liveFetch(owner: string, opts: ReadOpts): Promise<Record<string, 
     });
   }
 
+  let client: Record<string, unknown> = {};
+  try {
+    client = (await import(CLIENT_PKG)) as Record<string, unknown>;
+  } catch {
+    client = {};
+  }
+
   const createSolanaRpc = kit.createSolanaRpc as ((url: string) => unknown) | undefined;
   const toAddress = kit.address as ((s: string) => unknown) | undefined;
   const fetchPositionsForOwner = sdk.fetchPositionsForOwner as
     | ((rpc: unknown, owner: unknown) => Promise<unknown[]>)
     | undefined;
-  const fetchWhirlpool = sdk.fetchWhirlpool as ((rpc: unknown, addr: unknown) => Promise<unknown>) | undefined;
+  // fetchWhirlpool moved from the SDK facade to the generated client package
+  const fetchWhirlpool = (sdk.fetchWhirlpool ?? client.fetchWhirlpool) as
+    | ((rpc: unknown, addr: unknown) => Promise<unknown>)
+    | undefined;
   if (!createSolanaRpc || !toAddress || !fetchPositionsForOwner || !fetchWhirlpool) {
     throw new EngineError("DEPENDENCY_MISSING", "source/orca: installed SDK is missing the read functions this path uses", {
       needs: "createSolanaRpc, address, fetchPositionsForOwner, fetchWhirlpool",

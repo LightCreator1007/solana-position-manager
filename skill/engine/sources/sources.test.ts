@@ -198,8 +198,15 @@ test("the live path needs an rpc url and a venue sdk, and says which is missing"
     () => orca.read("owner"),
     (e: unknown) => e instanceof EngineError && e.code === "INVALID_INPUT",
   );
+  const pkg = "@orca-so/whirlpools";
+  const sdkPresent = await import(pkg).then(
+    () => true,
+    () => false,
+  );
+  // without the SDK the guard names the dependency; with it, bad inputs
+  // must still surface as a typed error, never as invented data
   await assert.rejects(
     () => orca.read("owner", { rpcUrl: "https://rpc.test" }),
-    (e: unknown) => e instanceof EngineError && e.code === "DEPENDENCY_MISSING",
+    (e: unknown) => e instanceof EngineError && (sdkPresent || e.code === "DEPENDENCY_MISSING"),
   );
 });
