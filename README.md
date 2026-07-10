@@ -58,8 +58,8 @@ and output evals with gradable assertions. It installs into Claude Code (`.claud
 ## Install
 
 ```bash
-git clone https://github.com/LightCreator1007/position-manager-skill
-cd position-manager-skill
+git clone https://github.com/LightCreator1007/solana-position-manager
+cd solana-position-manager
 ./install.sh          # Claude Code, ~/.claude, use -y to skip the prompt
 ./install.sh --agents # Codex, ~/.agents
 # or
@@ -69,7 +69,7 @@ cd position-manager-skill
 Or as a plugin, from inside Claude Code:
 
 ```
-/plugin marketplace add LightCreator1007/position-manager-skill
+/plugin marketplace add LightCreator1007/solana-position-manager
 /plugin install position-manager-skill
 ```
 
